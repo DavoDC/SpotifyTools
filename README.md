@@ -1,131 +1,100 @@
-# Spotify Playlist Generator
+# SpotifyTools
 
-Reads your offline music library (CSV/JSON from the consumer, or M3U) and creates a matching Spotify playlist.
+Python CLI tool that reads your offline music library (AudioMirror XML) and syncs it to a Spotify playlist.
 
-**Use case:** You have an offline music library at home, and want to listen to the same tracks on Spotify at work.
+**Use case:** Offline music library at home → listen to the same tracks on Spotify at work.
 
-## Features
+---
 
-- Upload CSV, JSON, or M3U playlist files from your offline library
-- Automatic track matching against Spotify with confidence scoring (exact / high / low / none)
-- Review matches and pick alternatives before creating the playlist
-- Creates a Spotify playlist with all matched tracks
-- Handles semicolon-separated artists (`Artist1;Artist2`) and strips `feat.` from titles
+## How it works
+
+1. Reads XML files from your AudioMirror library
+2. Searches Spotify for each track using artist + title + album
+3. Shows matches with confidence scores — you review and confirm before anything is added
+4. Adds confirmed matches to your Spotify playlist
+5. Saves decision history — re-runs only process new/unmatched tracks
 
 ---
 
 ## Setup
 
-### 1. Get Spotify API credentials
+### 1. Create a Spotify Developer app
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app
-3. Set **Redirect URI** to `http://localhost:PORT/auth/callback`
-4. Copy your **Client ID** and **Client Secret**
+2. Create a new app with these settings:
+   - **Redirect URI:** `http://127.0.0.1:8888/callback`
+   - **API/SDKs:** Web API
+3. Copy your **Client ID** and **Client Secret**
 
-### 2. Configure environment
+### 2. Configure
+
+Copy and fill in the config file:
 
 ```bash
-cp .env.example server/.env
+cp config.example.json config.json
 ```
 
-Edit `server/.env` and fill in your credentials:
+Edit `config.json`:
 
+```json
+{
+  "spotify_client_id": "your_client_id",
+  "spotify_client_secret": "your_client_secret",
+  "spotify_redirect_uri": "http://127.0.0.1:8888/callback",
+  "spotify_playlist_id": "your_playlist_id",
+  "audiomirror_path": "<home>/GitHubRepos/AudioMirror/AUDIO_MIRROR"
+}
 ```
-SPOTIFY_CLIENT_ID=your_client_id
-SPOTIFY_CLIENT_SECRET=your_client_secret
-SPOTIFY_REDIRECT_URI=http://localhost:PORT/auth/callback
-SESSION_SECRET=any_long_random_string
-PORT=3001
-```
+
+**To get your playlist ID:** open the playlist in Spotify → Share → Copy link → the ID is the part after `/playlist/` and before `?`
 
 ### 3. Install dependencies
 
 ```bash
-npm install
+pip install -r requirements.txt
 ```
 
-### 4. Run the app
+### 4. Run
 
 ```bash
-# Start both frontend and backend together
-npm run dev
-
-# Or start individually
-npm run dev:server   # backend on http://localhost:PORT
-npm run dev:client   # frontend on http://localhost:PORT
+python main.py
 ```
 
-### 5. Run tests
-
-```bash
-npm test
-# or
-npm test --workspace=server
-```
+On first run, a browser window will open for Spotify login. After that, auth is cached.
 
 ---
 
-## Input File Formats
-
-### CSV (the consumer export)
-Columns: `Artist,Title,Album,Year` (order does not matter, extra columns ignored)
-
-```csv
-Artist,Title,Album,Year
-Eminem,Lose Yourself,8 Mile Soundtrack,2002
-Chiddy Bang;Icona Pop,Mind Your Manners,Mind Your Manners,2012
-```
-
-### JSON
-Array of track objects:
-
-```json
-[
-  { "artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile Soundtrack", "year": 2002 },
-  { "artist": "Chiddy Bang;Icona Pop", "title": "Mind Your Manners" }
-]
-```
-
-### M3U
-Standard M3U playlist with `#EXTINF` lines:
-
-```
-#EXTM3U
-#EXTINF:180,Eminem - Lose Yourself
-/path/to/file.mp3
-```
-
----
-
-## Project Structure
+## Files
 
 ```
 SpotifyTools/
-  package.json          # npm workspaces root
-  the UI               # React + TypeScript + Vite frontend
-    src/
-      components/       # page components
-      services/         # apiClient.ts (calls backend)
-      types/            # Shared TypeScript types
-  server/               # Node.js + Express + TypeScript backend
-    src/
-      routes/           # auth, library, spotify routes
-      services/         # spotifyService, libraryService, matchingService
-    tests/              # Vitest TDD tests
+├── main.py              # Entry point
+├── config.json          # Your credentials (gitignored)
+├── config.example.json  # Template
+├── history.json         # Decision history (auto-created)
+├── src/
+│   ├── xml_parser.py    # Reads AudioMirror XML files
+│   ├── spotify.py       # Spotify API calls + auth
+│   └── matcher.py       # Match logic + confidence scoring
+├── tests/
+└── logs/
 ```
 
 ---
 
-## Matching Logic
+## Track states (history.json)
 
-For each offline track:
-1. Primary artist = first artist before `;` separator
-2. Strip `feat.` / `ft.` variants from title
-3. Search Spotify: `artist:"PrimaryArtist" track:"CleanTitle"`
-4. Score the result:
-   - **exact** — artist and title match exactly (case-insensitive)
-   - **high** — normalised match (strip punctuation, articles like "the")
-   - **low** — partial word overlap
-   - **none** — no results or very poor match
-5. Return top match + up to 3 alternatives for user to review
+| State | Meaning |
+|-------|---------|
+| `added` | Matched and added to playlist — skipped on re-run |
+| `custom` | Your custom track, won't exist on Spotify — skipped on re-run |
+| `rejected` | Bad match, rejected by you — retried on re-run |
+| `unmatched` | No match found — retried on re-run |
+
+---
+
+## Running tests
+
+```bash
+pytest
+```

@@ -1,0 +1,67 @@
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+from src.matcher import score_match, clean_title
+
+
+SCOPES = "playlist-modify-private playlist-read-private"
+
+
+def create_client(config: dict) -> spotipy.Spotify:
+    auth = SpotifyOAuth(
+        client_id=config["spotify_client_id"],
+        client_secret=config["spotify_client_secret"],
+        redirect_uri=config["spotify_redirect_uri"],
+        scope=SCOPES,
+        open_browser=True,
+    )
+    return spotipy.Spotify(auth_manager=auth)
+
+
+def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
+    artist = track["primary_artist"]
+    title = clean_title(track["title"])
+    album = track["album"]
+
+    query = f'artist:"{artist}" track:"{title}"'
+    results = sp.search(q=query, type="track", limit=5)
+    items = results.get("tracks", {}).get("items", [])
+
+    if not items:
+        # Broader fallback search
+        query = f'{artist} {title}'
+        results = sp.search(q=query, type="track", limit=5)
+        items = results.get("tracks", {}).get("items", [])
+
+    scored = []
+    for item in items:
+        confidence = score_match(track, item)
+        scored.append({
+            "spotify_id": item["id"],
+            "name": item["name"],
+            "artist": item["artists"][0]["name"],
+            "album": item["album"]["name"],
+            "confidence": confidence,
+            "uri": item["uri"],
+        })
+
+    # Sort: exact > high > low > none
+    order = {"exact": 0, "high": 1, "low": 2, "none": 3}
+    scored.sort(key=lambda x: order[x["confidence"]])
+    return scored
+
+
+def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
+    ids = set()
+    results = sp.playlist_tracks(playlist_id, fields="items(track(id)),next")
+    while results:
+        for item in results["items"]:
+            if item["track"] and item["track"]["id"]:
+                ids.add(item["track"]["id"])
+        results = sp.next(results) if results.get("next") else None
+    return ids
+
+
+def add_tracks_to_playlist(sp: spotipy.Spotify, playlist_id: str, track_uris: list[str]):
+    # Spotify API max 100 tracks per request
+    for i in range(0, len(track_uris), 100):
+        sp.playlist_add_items(playlist_id, track_uris[i:i+100])
