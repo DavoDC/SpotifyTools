@@ -240,6 +240,27 @@ def main():
         input("\nPress Enter to exit...")
         return
 
+    # Safety check: if Spotify says the playlist is non-empty but we read 0 IDs,
+    # the API response structure is unrecognised. Proceeding would re-upload all
+    # history tracks as "missing" (the 2026 duplication bug). Abort instead.
+    if len(existing_ids) == 0:
+        try:
+            raw = sp.playlist(config["spotify_playlist_id"])
+            page = raw.get("items") or raw.get("tracks") or {}
+            api_total = page.get("total", 0) if isinstance(page, dict) else 0
+        except Exception:
+            api_total = 0
+        if api_total > 0:
+            msg = (
+                f"Playlist API reported {api_total} tracks but 0 IDs were read. "
+                "The API response structure may have changed. "
+                "Check get_playlist_track_ids() in spotify.py and update _get_track_obj() if needed."
+            )
+            logging.error(f"ABORT: {msg}")
+            print(f"\n  ERROR: {msg}")
+            input("\nPress Enter to exit...")
+            return
+
     # Deduplicate playlist (catches double-upload bugs)
     print(f"  Checking for duplicates...", end="", flush=True)
     try:
