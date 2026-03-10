@@ -57,6 +57,26 @@ def test_parse_track_missing_year():
     track = parse_track(root)
     assert track["year"] is None
 
+def test_parse_track_missing_title_returns_empty_string():
+    xml = "<Track><Artists>Artist</Artists><Album>Album</Album></Track>"
+    root = ET.fromstring(xml)
+    track = parse_track(root)
+    assert track["title"] == ""
+
+def test_parse_track_empty_artists_returns_empty():
+    xml = "<Track><Title>Test</Title><Artists></Artists><Album>Album</Album></Track>"
+    root = ET.fromstring(xml)
+    track = parse_track(root)
+    assert track["primary_artist"] == ""
+    assert track["all_artists"] == []
+
+def test_parse_track_missing_artists_returns_empty():
+    xml = "<Track><Title>Test</Title><Album>Album</Album></Track>"
+    root = ET.fromstring(xml)
+    track = parse_track(root)
+    assert track["primary_artist"] == ""
+    assert track["all_artists"] == []
+
 
 # ── parse_library() — tests against real fixture files on disk ────────────────
 

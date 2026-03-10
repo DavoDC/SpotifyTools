@@ -44,8 +44,8 @@ def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
         scored.append({
             "spotify_id": item["id"],
             "name": item["name"],
-            "artist": item["artists"][0]["name"],
-            "album": item["album"]["name"],
+            "artist": item["artists"][0]["name"] if item.get("artists") else "",
+            "album": (item.get("album") or {}).get("name", ""),
             "confidence": confidence,
             "uri": item["uri"],
         })

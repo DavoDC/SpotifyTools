@@ -23,7 +23,7 @@ def score_match(track: dict, result: dict) -> str:
 
     result_artist = result["artists"][0]["name"].lower() if result.get("artists") else ""
     result_title = result.get("name", "").lower()
-    result_album = result.get("album", {}).get("name", "").lower()
+    result_album = (result.get("album") or {}).get("name", "").lower()
 
     artist_match = track_artist == result_artist
     title_match = track_title == result_title
