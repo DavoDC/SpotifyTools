@@ -124,6 +124,66 @@ def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
     return ids
 
 
+def get_playlist_items_with_positions(sp: spotipy.Spotify, playlist_id: str) -> tuple[list[tuple[str, int]], str]:
+    """Return ([(uri, position), ...], snapshot_id) for all tracks in the playlist."""
+    playlist = sp.playlist(playlist_id)
+    snapshot_id = playlist.get("snapshot_id", "")
+
+    items_with_pos = []
+    page = playlist.get("items") or playlist.get("tracks")
+    pos = 0
+    while page:
+        for item in (page.get("items") or []):
+            if item and item.get("track") and item["track"].get("uri"):
+                items_with_pos.append((item["track"]["uri"], pos))
+            pos += 1
+        if page.get("next"):
+            try:
+                page = sp.next(page)
+            except Exception as e:
+                logging.warning(f"  Pagination stopped at position {pos}: {e}")
+                break
+        else:
+            break
+
+    return items_with_pos, snapshot_id
+
+
+def remove_playlist_duplicates(sp: spotipy.Spotify, playlist_id: str) -> int:
+    """Remove duplicate tracks from the playlist, keeping the first occurrence.
+    Returns the number of duplicate entries removed."""
+    items_with_pos, snapshot_id = get_playlist_items_with_positions(sp, playlist_id)
+
+    if not items_with_pos:
+        return 0
+
+    # Collect extra positions for each URI (skip first occurrence)
+    seen: set[str] = set()
+    dupes: dict[str, list[int]] = {}
+    for uri, position in items_with_pos:
+        if uri in seen:
+            dupes.setdefault(uri, []).append(position)
+        else:
+            seen.add(uri)
+
+    if not dupes:
+        return 0
+
+    total = sum(len(p) for p in dupes.values())
+    tracks_payload = [{"uri": uri, "positions": positions} for uri, positions in dupes.items()]
+
+    plid = sp._get_id("playlist", playlist_id)
+    for i in range(0, len(tracks_payload), 100):
+        batch = tracks_payload[i:i + 100]
+        payload = {"tracks": batch}
+        if snapshot_id:
+            payload["snapshot_id"] = snapshot_id
+        sp._delete(f"playlists/{plid}/tracks", payload=payload)
+
+    logging.info(f"  Removed {total} duplicate track entries from playlist")
+    return total
+
+
 def add_tracks_to_playlist(sp: spotipy.Spotify, playlist_id: str, track_uris: list[str]):
     # POST /playlists/{id}/items — current non-deprecated endpoint (max 100 per request)
     # sp.playlist_add_items() uses the deprecated /tracks endpoint and returns 403
