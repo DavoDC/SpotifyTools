@@ -1,4 +1,5 @@
 import os
+import time
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from src.matcher import score_match, clean_title
@@ -23,19 +24,31 @@ def create_client(config: dict) -> spotipy.Spotify:
     return spotipy.Spotify(auth_manager=auth)
 
 
+def _search_with_retry(sp: spotipy.Spotify, **kwargs) -> dict:
+    """sp.search() with a single retry on 429 rate-limit response."""
+    try:
+        return sp.search(**kwargs)
+    except spotipy.exceptions.SpotifyException as e:
+        if e.http_status == 429:
+            retry_after = int(e.headers.get("Retry-After", 5)) if hasattr(e, "headers") and e.headers else 5
+            time.sleep(retry_after + 1)
+            return sp.search(**kwargs)
+        raise
+
+
 def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
     artist = track["primary_artist"]
     title = clean_title(track["title"])
     album = track["album"]
 
     query = f'artist:"{artist}" track:"{title}"'
-    results = sp.search(q=query, type="track", limit=5)
+    results = _search_with_retry(sp, q=query, type="track", limit=5)
     items = results.get("tracks", {}).get("items", [])
 
     if not items:
         # Broader fallback search
         query = f'{artist} {title}'
-        results = sp.search(q=query, type="track", limit=5)
+        results = _search_with_retry(sp, q=query, type="track", limit=5)
         items = results.get("tracks", {}).get("items", [])
 
     scored = []
@@ -73,7 +86,8 @@ def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
 def add_tracks_to_playlist(sp: spotipy.Spotify, playlist_id: str, track_uris: list[str]):
     # POST /playlists/{id}/items — current non-deprecated endpoint (max 100 per request)
     # sp.playlist_add_items() uses the deprecated /tracks endpoint and returns 403
+    # Payload must be {"uris": [...]} — bare list is not accepted
     plid = sp._get_id("playlist", playlist_id)
     for i in range(0, len(track_uris), 100):
         batch = track_uris[i:i+100]
-        sp._post(f"playlists/{plid}/items", payload=batch)
+        sp._post(f"playlists/{plid}/items", payload={"uris": batch})
