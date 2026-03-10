@@ -57,13 +57,14 @@ def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
 
 
 def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
-    # Use sp.playlist() instead of sp.playlist_tracks() — the /tracks endpoint
-    # returns 403 on some accounts due to a Spotify API change (2024).
+    # Use sp.playlist() — the /tracks endpoint is deprecated and returns 403.
+    # Current API returns the paged track collection under the "items" key.
     ids = set()
-    results = sp.playlist(playlist_id)["tracks"]
+    playlist = sp.playlist(playlist_id)
+    results = playlist.get("items") or playlist.get("tracks")
     while results:
         for item in results["items"]:
-            if item["track"] and item["track"]["id"]:
+            if item.get("track") and item["track"].get("id"):
                 ids.add(item["track"]["id"])
         results = sp.next(results) if results.get("next") else None
     return ids
