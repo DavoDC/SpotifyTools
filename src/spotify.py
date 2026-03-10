@@ -4,7 +4,7 @@ from spotipy.oauth2 import SpotifyOAuth
 from src.matcher import score_match, clean_title
 
 
-SCOPES = "playlist-modify-private playlist-read-private"
+SCOPES = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative"
 
 BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_PATH = os.path.join(BASE_DIR, "data", ".cache")
