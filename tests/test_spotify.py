@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import MagicMock, call
 import spotipy
 
-from src.spotify import search_track, get_playlist_track_ids, add_tracks_to_playlist
+from src.spotify import search_track, get_playlist_track_ids, add_tracks_to_playlist, remove_playlist_duplicates
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -220,3 +220,93 @@ def test_add_tracks_empty_list_makes_no_calls():
     add_tracks_to_playlist(sp, "playlist123", [])
 
     sp._post.assert_not_called()
+
+
+# ── remove_playlist_duplicates ────────────────────────────────────────────────
+
+def _mock_playlist_page(uris_with_pos, next_url=None, snapshot_id="snap1"):
+    """Build a mock sp.playlist() response with given track URIs."""
+    items = [{"track": {"uri": u, "id": u.split(":")[-1]}} for u in uris_with_pos]
+    return {
+        "snapshot_id": snapshot_id,
+        "items": {"items": items, "next": next_url, "total": len(items)},
+    }
+
+def test_remove_duplicates_no_dupes_makes_no_delete():
+    sp = MagicMock()
+    sp._get_id.return_value = "pl123"
+    sp.playlist.return_value = _mock_playlist_page(
+        ["spotify:track:a", "spotify:track:b", "spotify:track:c"]
+    )
+    sp.playlist.return_value["items"]["next"] = None
+
+    result = remove_playlist_duplicates(sp, "pl123")
+
+    assert result == 0
+    sp._delete.assert_not_called()
+
+def test_remove_duplicates_finds_one_dupe():
+    sp = MagicMock()
+    sp._get_id.return_value = "pl123"
+    # URI "a" appears at positions 0 and 2
+    sp.playlist.return_value = {
+        "snapshot_id": "snap1",
+        "items": {
+            "items": [
+                {"track": {"uri": "spotify:track:a", "id": "a"}},
+                {"track": {"uri": "spotify:track:b", "id": "b"}},
+                {"track": {"uri": "spotify:track:a", "id": "a"}},  # duplicate at pos 2
+            ],
+            "next": None,
+            "total": 3,
+        },
+    }
+
+    result = remove_playlist_duplicates(sp, "pl123")
+
+    assert result == 1
+    sp._delete.assert_called_once()
+    payload = sp._delete.call_args[1]["payload"]
+    assert payload["snapshot_id"] == "snap1"
+    assert len(payload["tracks"]) == 1
+    assert payload["tracks"][0]["uri"] == "spotify:track:a"
+    assert payload["tracks"][0]["positions"] == [2]
+
+def test_remove_duplicates_multiple_dupes():
+    sp = MagicMock()
+    sp._get_id.return_value = "pl123"
+    # "a" at 0,2,4 — two dupes. "b" at 1,3 — one dupe.
+    sp.playlist.return_value = {
+        "snapshot_id": "snap1",
+        "items": {
+            "items": [
+                {"track": {"uri": "spotify:track:a", "id": "a"}},  # pos 0 — kept
+                {"track": {"uri": "spotify:track:b", "id": "b"}},  # pos 1 — kept
+                {"track": {"uri": "spotify:track:a", "id": "a"}},  # pos 2 — dupe
+                {"track": {"uri": "spotify:track:b", "id": "b"}},  # pos 3 — dupe
+                {"track": {"uri": "spotify:track:a", "id": "a"}},  # pos 4 — dupe
+            ],
+            "next": None,
+            "total": 5,
+        },
+    }
+
+    result = remove_playlist_duplicates(sp, "pl123")
+
+    assert result == 3  # 2 extra "a"s + 1 extra "b"
+    payload = sp._delete.call_args[1]["payload"]
+    tracks = {t["uri"]: t["positions"] for t in payload["tracks"]}
+    assert tracks["spotify:track:a"] == [2, 4]
+    assert tracks["spotify:track:b"] == [3]
+
+def test_remove_duplicates_empty_playlist_returns_zero():
+    sp = MagicMock()
+    sp.playlist.return_value = {
+        "snapshot_id": "snap1",
+        "items": {"items": [], "next": None, "total": 0},
+    }
+
+    result = remove_playlist_duplicates(sp, "pl123")
+
+    assert result == 0
+    sp._delete.assert_not_called()

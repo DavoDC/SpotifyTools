@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import datetime
 from src.xml_parser import parse_library
-from src.spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist
+from src.spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist, remove_playlist_duplicates
 
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH  = os.path.join(BASE_DIR, "config", "config.json")
@@ -233,12 +233,27 @@ def main():
     try:
         existing_ids = get_playlist_track_ids(sp, config["spotify_playlist_id"])
         logging.info(f"  Playlist currently has {len(existing_ids)} tracks")
-        print(f" {len(existing_ids)} tracks found")
+        print(f" {len(existing_ids)} unique tracks found")
     except Exception as e:
         logging.error(f"Failed to read playlist: {e}")
         print(f"\n  ERROR: Could not read playlist: {e}")
         input("\nPress Enter to exit...")
         return
+
+    # Deduplicate playlist (catches double-upload bugs)
+    print(f"  Checking for duplicates...", end="", flush=True)
+    try:
+        dupes_removed = remove_playlist_duplicates(sp, config["spotify_playlist_id"])
+        if dupes_removed > 0:
+            print(f" found {dupes_removed} — removing...", end="", flush=True)
+            existing_ids = get_playlist_track_ids(sp, config["spotify_playlist_id"])
+            print(f" done. Playlist now has {len(existing_ids)} tracks.")
+            logging.info(f"  Deduplication: removed {dupes_removed}, now {len(existing_ids)} tracks")
+        else:
+            print(f" none found.")
+    except Exception as e:
+        print(f" FAILED: {e}")
+        logging.warning(f"Deduplication failed (non-fatal): {e}")
 
     # Helper: upload URIs to playlist and update existing_ids cache
     flushed_total = 0
