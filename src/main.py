@@ -2,8 +2,8 @@ import json
 import os
 import logging
 from datetime import datetime
-from xml_parser import parse_library
-from spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist
+from src.xml_parser import parse_library
+from src.spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist
 
 BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
@@ -15,6 +15,7 @@ ADDED = "added"
 CUSTOM = "custom"
 REJECTED = "rejected"
 UNMATCHED = "unmatched"
+QUIT = "quit"
 
 
 def setup_logging():
@@ -61,10 +62,12 @@ def review_match(track: dict, matches: list[dict]) -> tuple[str, str | None]:
                 print(f"    {i}. [{m['confidence'].upper()}] {m['artist']} — {m['name']} ({m['album']})")
 
     print()
-    print("  Options: [y] accept best  [1-4] pick alternative  [c] custom track  [s] skip/reject")
+    print("  Options: [y] accept best  [1-4] pick alternative  [c] custom track  [s] skip/reject  [q] quit & save")
     choice = input("  > ").strip().lower()
 
-    if choice == "y" and matches:
+    if choice == "q":
+        return QUIT, None
+    elif choice == "y" and matches:
         return ADDED, matches[0]["uri"]
     elif choice in ("1", "2", "3", "4"):
         idx = int(choice)
@@ -129,11 +132,22 @@ def main():
             skipped += 1
             continue
 
-        print(f"\n[{i}/{len(tracks)}]", end="")
         logging.info(f"Processing: {track['primary_artist']} — {track['title']}")
 
         matches = search_track(sp, track)
-        decision, uri = review_match(track, matches)
+
+        # Auto-accept exact matches without prompting
+        if matches and matches[0]["confidence"] == "exact":
+            decision, uri = ADDED, matches[0]["uri"]
+            print(f"\n[{i}/{len(tracks)}] AUTO: {track['primary_artist']} — {track['title']}")
+        else:
+            print(f"\n[{i}/{len(tracks)}]", end="")
+            decision, uri = review_match(track, matches)
+
+        if decision == QUIT:
+            logging.info("User quit. Progress saved.")
+            print("\nProgress saved. Re-run to continue from where you left off.")
+            break
 
         history[key] = {
             "state": decision,
