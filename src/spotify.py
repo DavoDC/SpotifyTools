@@ -71,6 +71,9 @@ def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
 
 
 def add_tracks_to_playlist(sp: spotipy.Spotify, playlist_id: str, track_uris: list[str]):
-    # Spotify API max 100 tracks per request
+    # POST /playlists/{id}/items — current non-deprecated endpoint (max 100 per request)
+    # sp.playlist_add_items() uses the deprecated /tracks endpoint and returns 403
+    plid = sp._get_id("playlist", playlist_id)
     for i in range(0, len(track_uris), 100):
-        sp.playlist_add_items(playlist_id, track_uris[i:i+100])
+        batch = track_uris[i:i+100]
+        sp._post(f"playlists/{plid}/items", payload=batch)
