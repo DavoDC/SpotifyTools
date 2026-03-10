@@ -179,29 +179,44 @@ def test_get_playlist_track_ids_uses_playlist_not_tracks_endpoint():
 
 def test_add_tracks_single_batch():
     sp = MagicMock()
+    sp._get_id.return_value = "playlist123"
     uris = ["uri:1", "uri:2", "uri:3"]
 
     add_tracks_to_playlist(sp, "playlist123", uris)
 
-    sp.playlist_add_items.assert_called_once_with("playlist123", uris)
+    sp._post.assert_called_once_with("playlists/playlist123/items", payload=uris)
+
+
+def test_add_tracks_uses_items_endpoint_not_tracks():
+    """Must use /items endpoint — /tracks endpoint is deprecated and returns 403."""
+    sp = MagicMock()
+    sp._get_id.return_value = "playlist123"
+
+    add_tracks_to_playlist(sp, "playlist123", ["uri:1"])
+
+    call_url = sp._post.call_args[0][0]
+    assert call_url.endswith("/items"), f"Expected /items endpoint, got: {call_url}"
+    assert "/tracks" not in call_url
 
 
 def test_add_tracks_batches_over_100():
     sp = MagicMock()
+    sp._get_id.return_value = "playlist123"
     uris = [f"uri:{i}" for i in range(250)]
 
     add_tracks_to_playlist(sp, "playlist123", uris)
 
-    assert sp.playlist_add_items.call_count == 3
-    calls = sp.playlist_add_items.call_args_list
-    assert len(calls[0][0][1]) == 100
-    assert len(calls[1][0][1]) == 100
-    assert len(calls[2][0][1]) == 50
+    assert sp._post.call_count == 3
+    calls = sp._post.call_args_list
+    assert len(calls[0][1]["payload"]) == 100
+    assert len(calls[1][1]["payload"]) == 100
+    assert len(calls[2][1]["payload"]) == 50
 
 
 def test_add_tracks_empty_list_makes_no_calls():
     sp = MagicMock()
+    sp._get_id.return_value = "playlist123"
 
     add_tracks_to_playlist(sp, "playlist123", [])
 
-    sp.playlist_add_items.assert_not_called()
+    sp._post.assert_not_called()

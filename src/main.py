@@ -121,40 +121,45 @@ def main():
     logging.info("Stage 3: Matching tracks")
 
     to_add_uris = []
-    skipped = added = custom = unmatched = rejected = 0
+    needs_review = []   # low/none confidence — flagged for review
+    skipped = added = unmatched = 0
 
     for i, track in enumerate(tracks, 1):
         key = track_key(track)
         state = history.get(key, {}).get("state")
 
         # Skip already resolved
-        if state == ADDED:
-            skipped += 1
-            continue
-        if state == CUSTOM:
+        if state in (ADDED, CUSTOM):
             skipped += 1
             continue
 
-        logging.info(f"Processing: {track['primary_artist']} — {track['title']}")
+        if i % 100 == 0 or i == 1:
+            print(f"  [{i}/{len(tracks)}] Processing...")
 
         matches = search_track(sp, track)
+        best = matches[0] if matches else None
+        confidence = best["confidence"] if best else "none"
 
-        # Auto-accept exact matches without prompting
-        if matches and matches[0]["confidence"] == "exact":
-            decision, uri = ADDED, matches[0]["uri"]
-            print(f"\n[{i}/{len(tracks)}] AUTO: {track['primary_artist']} — {track['title']}")
+        if confidence in ("exact", "high"):
+            decision, uri = ADDED, best["uri"]
+        elif confidence == "low":
+            decision, uri = ADDED, best["uri"]
+            needs_review.append({
+                "track": f"{track['primary_artist']} - {track['title']}",
+                "matched": f"{best['artist']} - {best['name']} ({best['album']})",
+                "confidence": confidence,
+            })
         else:
-            print(f"\n[{i}/{len(tracks)}]", end="")
-            decision, uri = review_match(track, matches)
-
-        if decision == QUIT:
-            logging.info("User quit. Progress saved.")
-            print("\nProgress saved. Re-run to continue from where you left off.")
-            break
+            decision, uri = UNMATCHED, None
+            needs_review.append({
+                "track": f"{track['primary_artist']} - {track['title']}",
+                "matched": None,
+                "confidence": "none",
+            })
 
         history[key] = {
             "state": decision,
-            "track": f"{track['primary_artist']} — {track['title']}",
+            "track": f"{track['primary_artist']} - {track['title']}",
             "spotify_uri": uri,
             "decided_at": datetime.now().isoformat(),
         }
@@ -165,15 +170,10 @@ def main():
             if spotify_id not in existing_ids:
                 to_add_uris.append(uri)
             added += 1
-        elif decision == CUSTOM:
-            custom += 1
-        elif decision == REJECTED:
-            rejected += 1
-
-        if not matches or matches[0]["confidence"] == "none":
-            history[key]["state"] = UNMATCHED
-            save_json(HISTORY_PATH, history)
+        else:
             unmatched += 1
+
+        logging.info(f"[{confidence.upper()}] {track['primary_artist']} - {track['title']}")
 
     # Stage 4: Add to playlist
     print(f"\nStage 4/4: Adding {len(to_add_uris)} new tracks to playlist...")
@@ -187,19 +187,32 @@ def main():
 
     # Summary
     elapsed = (datetime.now() - start).seconds
+    low_confidence = [r for r in needs_review if r["confidence"] == "low"]
+    no_match = [r for r in needs_review if r["confidence"] == "none"]
+
     print(f"""
 === Summary ===
   Total tracks:   {len(tracks)}
   Skipped:        {skipped} (already decided)
   Added:          {added}
-  Custom tracks:  {custom}
   Unmatched:      {unmatched}
-  Rejected:       {rejected}
   Time:           {elapsed}s
   Log:            {log_file}
 """)
-    logging.info(f"Done. Added={added} Custom={custom} Unmatched={unmatched} Rejected={rejected} Time={elapsed}s")
-    input("Press Enter to exit...")
+
+    if no_match:
+        print(f"=== Could Not Match ({len(no_match)}) ===")
+        for r in no_match:
+            print(f"  - {r['track']}")
+
+    if low_confidence:
+        print(f"\n=== Low Confidence — Worth Checking ({len(low_confidence)}) ===")
+        for r in low_confidence:
+            print(f"  - {r['track']}")
+            print(f"      matched to: {r['matched']}")
+
+    logging.info(f"Done. Added={added} Unmatched={unmatched} NeedsReview={len(needs_review)} Time={elapsed}s")
+    input("\nPress Enter to exit...")
 
 
 if __name__ == "__main__":
