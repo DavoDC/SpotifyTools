@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import spotipy
@@ -21,19 +22,30 @@ def create_client(config: dict) -> spotipy.Spotify:
         cache_path=CACHE_PATH,
         open_browser=True,
     )
-    return spotipy.Spotify(auth_manager=auth)
+    return spotipy.Spotify(auth_manager=auth, requests_timeout=15)
 
 
 def _search_with_retry(sp: spotipy.Spotify, **kwargs) -> dict:
-    """sp.search() with a single retry on 429 rate-limit response."""
-    try:
-        return sp.search(**kwargs)
-    except spotipy.exceptions.SpotifyException as e:
-        if e.http_status == 429:
-            retry_after = int(e.headers.get("Retry-After", 5)) if hasattr(e, "headers") and e.headers else 5
-            time.sleep(retry_after + 1)
+    """sp.search() with retry on 429 rate-limit and timeout errors."""
+    import requests.exceptions as req_exc
+    for attempt in range(3):
+        try:
             return sp.search(**kwargs)
-        raise
+        except spotipy.exceptions.SpotifyException as e:
+            if e.http_status == 429:
+                retry_after = int(e.headers.get("Retry-After", 10)) if hasattr(e, "headers") and e.headers else 10
+                wait = retry_after + 1
+                print(f"  [rate limited] sleeping {wait}s...", flush=True)
+                logging.warning(f"Rate limited (429), sleeping {wait}s")
+                time.sleep(wait)
+            else:
+                raise
+        except req_exc.Timeout:
+            wait = 5 * (attempt + 1)
+            print(f"  [timeout] sleeping {wait}s before retry {attempt + 1}/3...", flush=True)
+            logging.warning(f"Search timed out, sleeping {wait}s (attempt {attempt + 1})")
+            time.sleep(wait)
+    raise RuntimeError("Search failed after 3 attempts (timeout)")
 
 
 def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
