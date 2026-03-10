@@ -57,8 +57,10 @@ def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
 
 
 def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
+    # Use sp.playlist() instead of sp.playlist_tracks() — the /tracks endpoint
+    # returns 403 on some accounts due to a Spotify API change (2024).
     ids = set()
-    results = sp.playlist_tracks(playlist_id)
+    results = sp.playlist(playlist_id)["tracks"]
     while results:
         for item in results["items"]:
             if item["track"] and item["track"]["id"]:
