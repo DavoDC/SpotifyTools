@@ -82,6 +82,34 @@ def test_search_track_returns_empty_when_both_empty():
     assert results == []
 
 
+def test_search_track_empty_artists_does_not_crash():
+    # Spotify API can return tracks with empty artists list — must not IndexError
+    sp = MagicMock()
+    track = {"primary_artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile"}
+    bad_item = sp_track("Lose Yourself", "Eminem", "8 Mile")
+    bad_item["artists"] = []
+    sp.search.return_value = search_response([bad_item])
+
+    results = search_track(sp, track)
+    assert isinstance(results, list)
+
+
+def test_search_track_missing_album_does_not_crash():
+    # Spotify API can return tracks with None album
+    sp = MagicMock()
+    track = {"primary_artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile"}
+    bad_item = sp_track("Lose Yourself", "Eminem", "8 Mile")
+    bad_item["album"] = None
+    sp.search.return_value = search_response([bad_item])
+
+    # Should not raise
+    try:
+        results = search_track(sp, track)
+        assert isinstance(results, list)
+    except (TypeError, AttributeError):
+        pytest.fail("search_track crashed on None album from Spotify")
+
+
 # ── get_playlist_track_ids ────────────────────────────────────────────────────
 
 def test_get_playlist_track_ids_returns_ids():

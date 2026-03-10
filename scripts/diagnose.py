@@ -40,11 +40,28 @@ try:
 except Exception as e:
     print(f"     ERROR: {e}")
 
-# 4. Fetch tracks directly
-print(f"\n[4] Fetching tracks...")
+# 4. Fetch tracks via sp.playlist() (the fix)
+print(f"\n[4] Fetching tracks via sp.playlist() (main playlist)...")
 try:
-    result = sp.playlist_items(playlist_id, limit=1)
-    print(f"     OK — total tracks: {result['total']}")
+    tracks = sp.playlist(playlist_id)["tracks"]
+    print(f"     OK — total tracks: {tracks['total']}, first page: {len(tracks['items'])} items")
+    for item in tracks["items"][:3]:
+        t = item.get("track")
+        if t:
+            print(f"       - {t['artists'][0]['name']} - {t['name']}")
+except Exception as e:
+    print(f"     ERROR: {e}")
+
+# 5. Test on a different playlist to confirm it's not playlist-specific
+OTHER_PLAYLIST = "321LEomVmFIYZR0GZgpz1z"  # Best Akira Musivation (owned by user)
+print(f"\n[5] Fetching tracks from a different playlist ({OTHER_PLAYLIST})...")
+try:
+    tracks2 = sp.playlist(OTHER_PLAYLIST)["tracks"]
+    print(f"     OK — total tracks: {tracks2['total']}, first page: {len(tracks2['items'])} items")
+    for item in tracks2["items"][:3]:
+        t = item.get("track")
+        if t:
+            print(f"       - {t['artists'][0]['name']} - {t['name']}")
 except Exception as e:
     print(f"     ERROR: {e}")
 
