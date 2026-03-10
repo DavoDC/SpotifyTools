@@ -2,12 +2,13 @@ import json
 import os
 import logging
 from datetime import datetime
-from src.xml_parser import parse_library
-from src.spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist
+from xml_parser import parse_library
+from spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist
 
-CONFIG_PATH = "config.json"
-HISTORY_PATH = "history.json"
-LOG_DIR = "logs"
+BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
+HISTORY_PATH = os.path.join(BASE_DIR, "history.json")
+LOG_DIR     = os.path.join(BASE_DIR, "logs")
 
 # States
 ADDED = "added"
