@@ -86,7 +86,7 @@ def test_search_track_returns_empty_when_both_empty():
 
 def test_get_playlist_track_ids_returns_ids():
     sp = MagicMock()
-    sp.playlist_tracks.return_value = playlist_page(["id1", "id2"])
+    sp.playlist.return_value = {"tracks": playlist_page(["id1", "id2"])}
 
     ids = get_playlist_track_ids(sp, "playlist123")
 
@@ -95,7 +95,7 @@ def test_get_playlist_track_ids_returns_ids():
 
 def test_get_playlist_track_ids_handles_pagination():
     sp = MagicMock()
-    sp.playlist_tracks.return_value = playlist_page(["id1"], next_url="http://next")
+    sp.playlist.return_value = {"tracks": playlist_page(["id1"], next_url="http://next")}
     sp.next.return_value = playlist_page(["id2"])
 
     ids = get_playlist_track_ids(sp, "playlist123")
@@ -106,10 +106,10 @@ def test_get_playlist_track_ids_handles_pagination():
 
 def test_get_playlist_track_ids_skips_null_tracks():
     sp = MagicMock()
-    sp.playlist_tracks.return_value = {
+    sp.playlist.return_value = {"tracks": {
         "items": [{"track": None}, {"track": {"id": "id1"}}, {"track": {"id": None}}],
         "next": None,
-    }
+    }}
 
     ids = get_playlist_track_ids(sp, "playlist123")
 
@@ -118,22 +118,22 @@ def test_get_playlist_track_ids_skips_null_tracks():
 
 def test_get_playlist_track_ids_empty_playlist():
     sp = MagicMock()
-    sp.playlist_tracks.return_value = playlist_page([])
+    sp.playlist.return_value = {"tracks": playlist_page([])}
 
     ids = get_playlist_track_ids(sp, "playlist123")
 
     assert ids == set()
 
 
-def test_get_playlist_track_ids_no_fields_param():
-    """Ensure we do NOT pass a fields parameter — it causes 403 from Spotify API."""
+def test_get_playlist_track_ids_uses_playlist_not_tracks_endpoint():
+    """Must use sp.playlist() not sp.playlist_tracks() — /tracks endpoint returns 403."""
     sp = MagicMock()
-    sp.playlist_tracks.return_value = playlist_page(["id1"])
+    sp.playlist.return_value = {"tracks": playlist_page(["id1"])}
 
     get_playlist_track_ids(sp, "playlist123")
 
-    _, kwargs = sp.playlist_tracks.call_args
-    assert "fields" not in kwargs, "fields param causes 403 — must not be passed"
+    sp.playlist.assert_called_once_with("playlist123")
+    sp.playlist_tracks.assert_not_called()
 
 
 # ── add_tracks_to_playlist ────────────────────────────────────────────────────
