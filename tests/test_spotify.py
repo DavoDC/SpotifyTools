@@ -1,12 +1,16 @@
 """
 Tests for src/spotify.py.
 All Spotify API calls are mocked — no real network access.
+
+IMPORTANT: Spotify API returns playlist items under an "item" key (as of 2026),
+NOT "track". Tests must use the current format. Old "track" key tests are kept
+for backward compatibility. This was a real production bug — see git history.
 """
 import pytest
 from unittest.mock import MagicMock, call
 import spotipy
 
-from src.spotify import search_track, get_playlist_track_ids, add_tracks_to_playlist, remove_playlist_duplicates
+from src.spotify import search_track, get_playlist_track_ids, add_tracks_to_playlist, remove_playlist_duplicates, _get_track_obj
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -26,8 +30,17 @@ def search_response(items):
 
 
 def playlist_page(ids, next_url=None):
+    """Current Spotify API format: each item uses "item" key (NOT "track")."""
     return {
-        "items": [{"track": {"id": i}} for i in ids],
+        "items": [{"item": {"id": i, "uri": f"spotify:track:{i}"}} for i in ids],
+        "next": next_url,
+    }
+
+
+def playlist_page_old_format(ids, next_url=None):
+    """Old Spotify API format: each item uses "track" key. Keep for compat tests."""
+    return {
+        "items": [{"track": {"id": i, "uri": f"spotify:track:{i}"}} for i in ids],
         "next": next_url,
     }
 
@@ -110,12 +123,57 @@ def test_search_track_missing_album_does_not_crash():
         pytest.fail("search_track crashed on None album from Spotify")
 
 
+# ── _get_track_obj ────────────────────────────────────────────────────────────
+
+def test_get_track_obj_new_format():
+    """Current API (2026+): track object is under "item" key."""
+    item = {"item": {"id": "abc", "uri": "spotify:track:abc"}}
+    assert _get_track_obj(item)["id"] == "abc"
+
+
+def test_get_track_obj_old_format():
+    """Old API: track object was under "track" key — must still work."""
+    item = {"track": {"id": "abc", "uri": "spotify:track:abc"}}
+    assert _get_track_obj(item)["id"] == "abc"
+
+
+def test_get_track_obj_prefers_item_over_track():
+    """If both keys exist, "item" takes priority (current format)."""
+    item = {"item": {"id": "new"}, "track": {"id": "old"}}
+    assert _get_track_obj(item)["id"] == "new"
+
+
+def test_get_track_obj_returns_none_when_neither_key():
+    item = {"added_at": "2024-01-01"}
+    assert _get_track_obj(item) is None
+
+
+def test_get_track_obj_returns_none_for_null_item():
+    item = {"item": None, "track": None}
+    assert _get_track_obj(item) is None
+
+
 # ── get_playlist_track_ids ────────────────────────────────────────────────────
 
-def test_get_playlist_track_ids_returns_ids():
-    # Current Spotify API returns paged tracks under "items" key
+def test_get_playlist_track_ids_new_api_format():
+    """Regression test: current Spotify API uses "item" key, not "track".
+    This test would have caught the 2026 duplication bug before it ran."""
     sp = MagicMock()
     sp.playlist.return_value = {"items": playlist_page(["id1", "id2"])}
+
+    ids = get_playlist_track_ids(sp, "playlist123")
+
+    # If this fails with ids==set(), the "item"/"track" key mapping is broken
+    assert ids == {"id1", "id2"}, (
+        "Expected 2 IDs but got 0. "
+        "Likely cause: Spotify API changed track key from 'track' to 'item' and code wasn't updated."
+    )
+
+
+def test_get_playlist_track_ids_old_track_key_still_works():
+    """Backward compat: old API format with "track" key must still return IDs."""
+    sp = MagicMock()
+    sp.playlist.return_value = {"items": playlist_page_old_format(["id1", "id2"])}
 
     ids = get_playlist_track_ids(sp, "playlist123")
 
@@ -123,7 +181,7 @@ def test_get_playlist_track_ids_returns_ids():
 
 
 def test_get_playlist_track_ids_falls_back_to_tracks_key():
-    # Older API / spotipy versions return "tracks" key — must handle both
+    """Older spotipy versions wrap tracks under a "tracks" key — must handle both."""
     sp = MagicMock()
     sp.playlist.return_value = {"tracks": playlist_page(["id1", "id2"])}
 
@@ -144,9 +202,14 @@ def test_get_playlist_track_ids_handles_pagination():
 
 
 def test_get_playlist_track_ids_skips_null_tracks():
+    """Tracks deleted from Spotify catalog have null item objects — must skip, not crash."""
     sp = MagicMock()
     sp.playlist.return_value = {"items": {
-        "items": [{"track": None}, {"track": {"id": "id1"}}, {"track": {"id": None}}],
+        "items": [
+            {"item": None},
+            {"item": {"id": "id1", "uri": "spotify:track:id1"}},
+            {"item": {"id": None}},
+        ],
         "next": None,
     }}
 
@@ -161,6 +224,23 @@ def test_get_playlist_track_ids_empty_playlist():
 
     ids = get_playlist_track_ids(sp, "playlist123")
 
+    assert ids == set()
+
+
+def test_get_playlist_track_ids_nonzero_total_but_zero_ids_is_detectable():
+    """Regression: if API says total=500 but we read 0 IDs, something is structurally wrong.
+    The function itself returns empty set — caller must check and NOT proceed with uploads."""
+    sp = MagicMock()
+    # Simulate broken response: items present but none have recognised track keys
+    sp.playlist.return_value = {"items": {
+        "items": [{"unknown_key": {"id": "abc"}} for _ in range(100)],
+        "next": None,
+        "total": 100,
+    }}
+
+    ids = get_playlist_track_ids(sp, "playlist123")
+
+    # Function returns empty — caller (main.py) must treat 0-ids-from-nonzero-total as error
     assert ids == set()
 
 
@@ -224,13 +304,15 @@ def test_add_tracks_empty_list_makes_no_calls():
 
 # ── remove_playlist_duplicates ────────────────────────────────────────────────
 
-def _mock_playlist_page(uris_with_pos, next_url=None, snapshot_id="snap1"):
-    """Build a mock sp.playlist() response with given track URIs."""
-    items = [{"track": {"uri": u, "id": u.split(":")[-1]}} for u in uris_with_pos]
+def _mock_playlist_page(uris, next_url=None, snapshot_id="snap1"):
+    """Build a mock sp.playlist() response with given track URIs.
+    Uses the CURRENT API format: "item" key (not "track")."""
+    items = [{"item": {"uri": u, "id": u.split(":")[-1]}} for u in uris]
     return {
         "snapshot_id": snapshot_id,
         "items": {"items": items, "next": next_url, "total": len(items)},
     }
+
 
 def test_remove_duplicates_no_dupes_makes_no_delete():
     sp = MagicMock()
@@ -238,12 +320,12 @@ def test_remove_duplicates_no_dupes_makes_no_delete():
     sp.playlist.return_value = _mock_playlist_page(
         ["spotify:track:a", "spotify:track:b", "spotify:track:c"]
     )
-    sp.playlist.return_value["items"]["next"] = None
 
     result = remove_playlist_duplicates(sp, "pl123")
 
     assert result == 0
     sp._delete.assert_not_called()
+
 
 def test_remove_duplicates_finds_one_dupe():
     sp = MagicMock()
@@ -253,9 +335,9 @@ def test_remove_duplicates_finds_one_dupe():
         "snapshot_id": "snap1",
         "items": {
             "items": [
-                {"track": {"uri": "spotify:track:a", "id": "a"}},
-                {"track": {"uri": "spotify:track:b", "id": "b"}},
-                {"track": {"uri": "spotify:track:a", "id": "a"}},  # duplicate at pos 2
+                {"item": {"uri": "spotify:track:a", "id": "a"}},
+                {"item": {"uri": "spotify:track:b", "id": "b"}},
+                {"item": {"uri": "spotify:track:a", "id": "a"}},  # duplicate at pos 2
             ],
             "next": None,
             "total": 3,
@@ -268,9 +350,12 @@ def test_remove_duplicates_finds_one_dupe():
     sp._delete.assert_called_once()
     payload = sp._delete.call_args[1]["payload"]
     assert payload["snapshot_id"] == "snap1"
-    assert len(payload["tracks"]) == 1
-    assert payload["tracks"][0]["uri"] == "spotify:track:a"
-    assert payload["tracks"][0]["positions"] == [2]
+    # New /items endpoint uses "items" key (not "tracks"), and no "positions" field
+    assert "items" in payload
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["uri"] == "spotify:track:a"
+    assert "positions" not in payload["items"][0]
+
 
 def test_remove_duplicates_multiple_dupes():
     sp = MagicMock()
@@ -280,11 +365,11 @@ def test_remove_duplicates_multiple_dupes():
         "snapshot_id": "snap1",
         "items": {
             "items": [
-                {"track": {"uri": "spotify:track:a", "id": "a"}},  # pos 0 — kept
-                {"track": {"uri": "spotify:track:b", "id": "b"}},  # pos 1 — kept
-                {"track": {"uri": "spotify:track:a", "id": "a"}},  # pos 2 — dupe
-                {"track": {"uri": "spotify:track:b", "id": "b"}},  # pos 3 — dupe
-                {"track": {"uri": "spotify:track:a", "id": "a"}},  # pos 4 — dupe
+                {"item": {"uri": "spotify:track:a", "id": "a"}},  # pos 0 — kept
+                {"item": {"uri": "spotify:track:b", "id": "b"}},  # pos 1 — kept
+                {"item": {"uri": "spotify:track:a", "id": "a"}},  # pos 2 — dupe
+                {"item": {"uri": "spotify:track:b", "id": "b"}},  # pos 3 — dupe
+                {"item": {"uri": "spotify:track:a", "id": "a"}},  # pos 4 — dupe
             ],
             "next": None,
             "total": 5,
@@ -295,9 +380,10 @@ def test_remove_duplicates_multiple_dupes():
 
     assert result == 3  # 2 extra "a"s + 1 extra "b"
     payload = sp._delete.call_args[1]["payload"]
-    tracks = {t["uri"]: t["positions"] for t in payload["tracks"]}
-    assert tracks["spotify:track:a"] == [2, 4]
-    assert tracks["spotify:track:b"] == [3]
+    uris = [t["uri"] for t in payload["items"]]
+    assert uris.count("spotify:track:a") == 2
+    assert uris.count("spotify:track:b") == 1
+
 
 def test_remove_duplicates_empty_playlist_returns_zero():
     sp = MagicMock()

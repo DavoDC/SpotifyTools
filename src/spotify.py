@@ -87,6 +87,16 @@ def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
     return scored
 
 
+def _get_track_obj(item: dict) -> dict | None:
+    """Extract the track object from a playlist item, handling both API response formats.
+
+    Spotify API response has changed over time:
+    - Old format: item["track"] = track object
+    - New format: item["item"] = track object (as of 2026)
+    """
+    return item.get("item") or item.get("track")
+
+
 def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
     # sp.playlist() returns tracks under "items" key (current API) or "tracks" (older).
     # First page may have items=[] with total>0 — must follow "next" URL to get tracks.
@@ -107,8 +117,9 @@ def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
         items = page.get("items") or []
         logging.info(f"  Paginating: page={page_num} items={len(items)} running_total={len(ids)}")
         for item in items:
-            if item and item.get("track") and item["track"].get("id"):
-                ids.add(item["track"]["id"])
+            track = _get_track_obj(item) if item else None
+            if track and track.get("id"):
+                ids.add(track["id"])
         if page.get("next"):
             try:
                 page = sp.next(page)
@@ -134,8 +145,9 @@ def get_playlist_items_with_positions(sp: spotipy.Spotify, playlist_id: str) -> 
     pos = 0
     while page:
         for item in (page.get("items") or []):
-            if item and item.get("track") and item["track"].get("uri"):
-                items_with_pos.append((item["track"]["uri"], pos))
+            track = _get_track_obj(item) if item else None
+            if track and track.get("uri"):
+                items_with_pos.append((track["uri"], pos))
             pos += 1
         if page.get("next"):
             try:
@@ -170,15 +182,22 @@ def remove_playlist_duplicates(sp: spotipy.Spotify, playlist_id: str) -> int:
         return 0
 
     total = sum(len(p) for p in dupes.values())
-    tracks_payload = [{"uri": uri, "positions": positions} for uri, positions in dupes.items()]
+
+    # Flatten duplicate URIs into a single list (one entry per extra occurrence to remove)
+    # DELETE /playlists/{id}/items — new endpoint uses "items" key (not "tracks")
+    # No positions support — each item here is one extra occurrence to delete
+    items_to_delete = []
+    for uri, positions in dupes.items():
+        for _ in positions:
+            items_to_delete.append({"uri": uri})
 
     plid = sp._get_id("playlist", playlist_id)
-    for i in range(0, len(tracks_payload), 100):
-        batch = tracks_payload[i:i + 100]
-        payload = {"tracks": batch}
+    for i in range(0, len(items_to_delete), 100):
+        batch = items_to_delete[i:i + 100]
+        payload = {"items": batch}
         if snapshot_id:
             payload["snapshot_id"] = snapshot_id
-        sp._delete(f"playlists/{plid}/tracks", payload=payload)
+        sp._delete(f"playlists/{plid}/items", payload=payload)
 
     logging.info(f"  Removed {total} duplicate track entries from playlist")
     return total
