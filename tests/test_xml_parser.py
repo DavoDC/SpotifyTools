@@ -3,6 +3,8 @@ from src.xml_parser import parse_track, parse_library
 import xml.etree.ElementTree as ET
 import os
 
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "AUDIO_MIRROR")
+
 
 SAMPLE_XML = """<Track>
   <Title>bbycakes</Title>
@@ -54,3 +56,47 @@ def test_parse_track_missing_year():
     root = ET.fromstring(xml)
     track = parse_track(root)
     assert track["year"] is None
+
+
+# ── parse_library() — tests against real fixture files on disk ────────────────
+
+def test_parse_library_track_count():
+    # 4 valid XML files + 1 broken = 4 tracks returned
+    tracks = parse_library(FIXTURES_DIR)
+    assert len(tracks) == 4
+
+def test_parse_library_finds_nested_artist_track():
+    tracks = parse_library(FIXTURES_DIR)
+    titles = [t["title"] for t in tracks]
+    assert "My Name Is" in titles
+
+def test_parse_library_finds_compilation_track():
+    tracks = parse_library(FIXTURES_DIR)
+    titles = [t["title"] for t in tracks]
+    assert "Some Song" in titles
+
+def test_parse_library_finds_miscellaneous_track():
+    tracks = parse_library(FIXTURES_DIR)
+    titles = [t["title"] for t in tracks]
+    assert "No Year Track" in titles
+
+def test_parse_library_multi_artist_track():
+    tracks = parse_library(FIXTURES_DIR)
+    bbycakes = next(t for t in tracks if t["title"] == "bbycakes")
+    assert bbycakes["primary_artist"] == "Mura Masa"
+    assert len(bbycakes["all_artists"]) == 4
+
+def test_parse_library_missing_year_is_none():
+    tracks = parse_library(FIXTURES_DIR)
+    no_year = next(t for t in tracks if t["title"] == "No Year Track")
+    assert no_year["year"] is None
+
+def test_parse_library_skips_broken_xml():
+    # broken.xml must not crash the run — should just be skipped
+    tracks = parse_library(FIXTURES_DIR)
+    source_files = [t["source_file"] for t in tracks]
+    assert "broken.xml" not in source_files
+
+def test_parse_library_includes_source_file():
+    tracks = parse_library(FIXTURES_DIR)
+    assert all("source_file" in t for t in tracks)
