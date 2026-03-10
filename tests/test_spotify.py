@@ -113,6 +113,17 @@ def test_search_track_missing_album_does_not_crash():
 # ── get_playlist_track_ids ────────────────────────────────────────────────────
 
 def test_get_playlist_track_ids_returns_ids():
+    # Current Spotify API returns paged tracks under "items" key
+    sp = MagicMock()
+    sp.playlist.return_value = {"items": playlist_page(["id1", "id2"])}
+
+    ids = get_playlist_track_ids(sp, "playlist123")
+
+    assert ids == {"id1", "id2"}
+
+
+def test_get_playlist_track_ids_falls_back_to_tracks_key():
+    # Older API / spotipy versions return "tracks" key — must handle both
     sp = MagicMock()
     sp.playlist.return_value = {"tracks": playlist_page(["id1", "id2"])}
 
@@ -123,7 +134,7 @@ def test_get_playlist_track_ids_returns_ids():
 
 def test_get_playlist_track_ids_handles_pagination():
     sp = MagicMock()
-    sp.playlist.return_value = {"tracks": playlist_page(["id1"], next_url="http://next")}
+    sp.playlist.return_value = {"items": playlist_page(["id1"], next_url="http://next")}
     sp.next.return_value = playlist_page(["id2"])
 
     ids = get_playlist_track_ids(sp, "playlist123")
@@ -134,7 +145,7 @@ def test_get_playlist_track_ids_handles_pagination():
 
 def test_get_playlist_track_ids_skips_null_tracks():
     sp = MagicMock()
-    sp.playlist.return_value = {"tracks": {
+    sp.playlist.return_value = {"items": {
         "items": [{"track": None}, {"track": {"id": "id1"}}, {"track": {"id": None}}],
         "next": None,
     }}
@@ -146,7 +157,7 @@ def test_get_playlist_track_ids_skips_null_tracks():
 
 def test_get_playlist_track_ids_empty_playlist():
     sp = MagicMock()
-    sp.playlist.return_value = {"tracks": playlist_page([])}
+    sp.playlist.return_value = {"items": playlist_page([])}
 
     ids = get_playlist_track_ids(sp, "playlist123")
 
@@ -154,9 +165,9 @@ def test_get_playlist_track_ids_empty_playlist():
 
 
 def test_get_playlist_track_ids_uses_playlist_not_tracks_endpoint():
-    """Must use sp.playlist() not sp.playlist_tracks() — /tracks endpoint returns 403."""
+    """Must use sp.playlist() not sp.playlist_tracks() — /tracks endpoint is deprecated."""
     sp = MagicMock()
-    sp.playlist.return_value = {"tracks": playlist_page(["id1"])}
+    sp.playlist.return_value = {"items": playlist_page(["id1"])}
 
     get_playlist_track_ids(sp, "playlist123")
 

@@ -1,7 +1,7 @@
 """
-Spotify auth diagnostic.
+Spotify auth diagnostic. Runs on every launch via run.sh (silent mode).
 Interactive: python scripts/diagnose.py
-Silent (background, log only): python scripts/diagnose.py --silent
+Silent (log only): python scripts/diagnose.py --silent
 """
 import json
 import os
@@ -20,67 +20,94 @@ os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, f"diagnose_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 
 
-def out(msg):
+def out(msg=""):
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(msg + "\n")
     if not SILENT:
         print(msg)
 
 
-with open(CONFIG_PATH) as f:
-    config = json.load(f)
+def check(label, fn):
+    """Run fn(), log result. Returns value on success, None on failure."""
+    try:
+        result = fn()
+        out(f"     OK: {result}")
+        return result
+    except Exception as e:
+        out(f"     FAIL: {e}")
+        return None
 
-sp = create_client(config)
-playlist_id = config["spotify_playlist_id"]
 
-out(f"\n=== Spotify Diagnostics ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ===\n")
+out(f"=== Spotify Diagnostics ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ===")
 
-# 1. Current user
-user = sp.current_user()
-out(f"[1] Authenticated as: {user['display_name']} ({user['id']})")
+try:
+    with open(CONFIG_PATH) as f:
+        config = json.load(f)
+except Exception as e:
+    out(f"FATAL: Could not load config: {e}")
+    sys.exit(1)
 
-# 2. Is target playlist in user's playlists?
-out(f"\n[2] Checking target playlist ({playlist_id})...")
-playlists = sp.current_user_playlists(limit=50)
-found = any(p["id"] == playlist_id for p in playlists["items"])
-out(f"     Found in your playlists: {found}")
+try:
+    sp = create_client(config)
+except Exception as e:
+    out(f"FATAL: Could not create Spotify client: {e}")
+    sys.exit(1)
+
+playlist_id = config.get("spotify_playlist_id", "MISSING")
+
+# 1. Auth
+out("\n[1] Auth check")
+user = check("current_user", lambda: sp.current_user()["display_name"] + " (" + sp.current_user()["id"] + ")")
+
+# 2. Playlist owned by user?
+out("\n[2] Playlist ownership")
+def check_ownership():
+    playlists = sp.current_user_playlists(limit=50)
+    found = next((p for p in playlists["items"] if p["id"] == playlist_id), None)
+    if not found:
+        raise Exception(f"Playlist {playlist_id} not found in your playlists")
+    return f"Found: {found['name']}"
+check("ownership", check_ownership)
 
 # 3. Playlist metadata
-out(f"\n[3] Fetching playlist metadata...")
-try:
-    p = sp.playlist(playlist_id, fields="id,name,owner,public")
-    out(f"     Name:   {p['name']}")
-    out(f"     Owner:  {p['owner']['display_name']} ({p['owner']['id']})")
-    out(f"     Public: {p['public']}")
-except Exception as e:
-    out(f"     ERROR: {e}")
+out("\n[3] Playlist metadata (GET /playlists/{id})")
+def check_metadata():
+    p = sp.playlist(playlist_id)
+    keys = list(p.keys())
+    track_key = "items" if "items" in p else ("tracks" if "tracks" in p else "MISSING")
+    return f"name='{p.get('name')}' public={p.get('public')} track_key='{track_key}' top_level_keys={keys}"
+check("metadata", check_metadata)
 
-# 4. Fetch tracks via sp.playlist() (main method used by app)
-out(f"\n[4] Fetching tracks via sp.playlist()...")
-try:
-    tracks = sp.playlist(playlist_id)["tracks"]
-    out(f"     OK - total: {tracks['total']}, first page: {len(tracks['items'])} items")
-    for item in tracks["items"][:3]:
+# 4. Read tracks via sp.playlist()
+out("\n[4] Read tracks via sp.playlist() (app method)")
+def check_read_tracks():
+    p = sp.playlist(playlist_id)
+    results = p.get("items") or p.get("tracks")
+    if results is None:
+        raise Exception(f"No items/tracks key found. Keys: {list(p.keys())}")
+    total = results.get("total", "?")
+    page = results.get("items", [])
+    sample = []
+    for item in page[:2]:
         t = item.get("track")
         if t:
-            out(f"       - {t['artists'][0]['name']} - {t['name']}")
-except Exception as e:
-    out(f"     ERROR: {e}")
+            sample.append(f"{t['artists'][0]['name']} - {t['name']}" if t.get("artists") else t.get("name", "?"))
+    return f"total={total} sample={sample}"
+check("read_tracks", check_read_tracks)
 
-# 5. Test on a second owned playlist
-OTHER_PLAYLIST = "321LEomVmFIYZR0GZgpz1z"  # Best Akira Musivation
-out(f"\n[5] Fetching tracks from second playlist ({OTHER_PLAYLIST})...")
-try:
-    tracks2 = sp.playlist(OTHER_PLAYLIST)["tracks"]
-    out(f"     OK - total: {tracks2['total']}, first page: {len(tracks2['items'])} items")
-    for item in tracks2["items"][:3]:
-        t = item.get("track")
-        if t:
-            out(f"       - {t['artists'][0]['name']} - {t['name']}")
-except Exception as e:
-    out(f"     ERROR: {e}")
+# 5. Add endpoint reachable? (dry run — don't actually add anything)
+out("\n[5] Add endpoint check (GET playlist only, not writing)")
+def check_add_endpoint():
+    # Just verify the playlist object is writable by checking owner matches auth user
+    p = sp.playlist(playlist_id, fields="owner")
+    current = sp.current_user()["id"]
+    owner = p["owner"]["id"]
+    if owner != current:
+        raise Exception(f"Playlist owner ({owner}) != authenticated user ({current})")
+    return f"Owner matches authenticated user ({current})"
+check("add_endpoint", check_add_endpoint)
 
-out(f"\nLog saved to: {LOG_FILE}")
+out(f"\nLog: {LOG_FILE}")
 
 if not SILENT:
     input("\nPress Enter to exit...")
