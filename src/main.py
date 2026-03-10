@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import time
 from datetime import datetime
 from src.xml_parser import parse_library
 from src.spotify import create_client, search_track, get_playlist_track_ids, add_tracks_to_playlist
@@ -267,6 +268,10 @@ def main():
     if missing_uris:
         print(f"\n  Uploading {len(missing_uris)} previously matched tracks to playlist...")
         flush_to_playlist(missing_uris, "recovery")
+        # Brief pause after bulk upload to avoid rate-limiting the first search
+        if to_search:
+            print("  Waiting 5s before searching (rate limit buffer)...")
+            time.sleep(5)
 
     if not to_search:
         # Nothing left to search — recovery was the only work needed
