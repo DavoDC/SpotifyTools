@@ -184,7 +184,7 @@ def test_add_tracks_single_batch():
 
     add_tracks_to_playlist(sp, "playlist123", uris)
 
-    sp._post.assert_called_once_with("playlists/playlist123/items", payload=uris)
+    sp._post.assert_called_once_with("playlists/playlist123/items", payload={"uris": uris})
 
 
 def test_add_tracks_uses_items_endpoint_not_tracks():
@@ -208,9 +208,9 @@ def test_add_tracks_batches_over_100():
 
     assert sp._post.call_count == 3
     calls = sp._post.call_args_list
-    assert len(calls[0][1]["payload"]) == 100
-    assert len(calls[1][1]["payload"]) == 100
-    assert len(calls[2][1]["payload"]) == 50
+    assert len(calls[0][1]["payload"]["uris"]) == 100
+    assert len(calls[1][1]["payload"]["uris"]) == 100
+    assert len(calls[2][1]["payload"]["uris"]) == 50
 
 
 def test_add_tracks_empty_list_makes_no_calls():
