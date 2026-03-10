@@ -58,7 +58,7 @@ def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
 
 def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
     ids = set()
-    results = sp.playlist_tracks(playlist_id, fields="items(track(id)),next")
+    results = sp.playlist_tracks(playlist_id)
     while results:
         for item in results["items"]:
             if item["track"] and item["track"]["id"]:
