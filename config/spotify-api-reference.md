@@ -3,6 +3,8 @@
 **Last verified:** 2026-03-10
 **Source:** https://developer.spotify.com/documentation/web-api
 
+> **NEVER GUESS DOCS URLs.** Navigate from https://developer.spotify.com/documentation/web-api — fetch that page first to get real link slugs, then fetch the specific page. Guessing slugs wastes time and returns 404s.
+
 > **IMPORTANT:** Spotify has deprecated all `/tracks` endpoints and replaced them with `/items`.
 > Always check this file before making any API calls. Never assume old endpoint behaviour.
 
