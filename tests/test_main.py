@@ -4,6 +4,7 @@ These don't test logic — they verify the entry point is importable and
 wired up correctly. Catches broken imports, missing files, bad paths.
 """
 import importlib
+import os
 from src.main import review_match, ADDED, QUIT, REJECTED
 from unittest.mock import patch
 
@@ -25,7 +26,7 @@ def test_main_config_path_points_to_config_dir():
 
 def test_main_log_dir_points_to_repo_root():
     mod = importlib.import_module("src.main")
-    assert mod.LOG_DIR.endswith("logs"), f"LOG_DIR unexpected: {mod.LOG_DIR}"
+    assert mod.LOG_DIR.endswith(os.path.join("data", "logs")), f"LOG_DIR unexpected: {mod.LOG_DIR}"
 
 
 # ── review_match behaviour ────────────────────────────────────────────────────

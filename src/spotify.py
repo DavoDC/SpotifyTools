@@ -1,3 +1,4 @@
+import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from src.matcher import score_match, clean_title
@@ -5,13 +6,18 @@ from src.matcher import score_match, clean_title
 
 SCOPES = "playlist-modify-private playlist-read-private"
 
+BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE_PATH = os.path.join(BASE_DIR, "data", ".cache")
+
 
 def create_client(config: dict) -> spotipy.Spotify:
+    os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
     auth = SpotifyOAuth(
         client_id=config["spotify_client_id"],
         client_secret=config["spotify_client_secret"],
         redirect_uri=config["spotify_redirect_uri"],
         scope=SCOPES,
+        cache_path=CACHE_PATH,
         open_browser=True,
     )
     return spotipy.Spotify(auth_manager=auth)
