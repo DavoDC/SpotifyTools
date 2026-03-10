@@ -7,8 +7,8 @@ from src.spotify import create_client, search_track, get_playlist_track_ids, add
 
 BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
-HISTORY_PATH = os.path.join(BASE_DIR, "history.json")
-LOG_DIR     = os.path.join(BASE_DIR, "logs")
+HISTORY_PATH = os.path.join(BASE_DIR, "data", "history.json")
+LOG_DIR     = os.path.join(BASE_DIR, "data", "logs")
 
 # States
 ADDED = "added"
