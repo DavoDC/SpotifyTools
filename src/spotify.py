@@ -22,7 +22,13 @@ def create_client(config: dict) -> spotipy.Spotify:
         cache_path=CACHE_PATH,
         open_browser=True,
     )
-    return spotipy.Spotify(auth_manager=auth, requests_timeout=15)
+    return spotipy.Spotify(
+        auth_manager=auth,
+        requests_timeout=15,           # 15s timeout per request (default is 5)
+        retries=5,                     # retry transient failures up to 5 times
+        status_forcelist=[429, 500, 502, 503, 504],  # auto-retry these HTTP errors
+        backoff_factor=1,              # 1s, 2s, 4s, 8s, 16s between retries
+    )
 
 
 def _search_with_retry(sp: spotipy.Spotify, **kwargs) -> dict:
@@ -82,16 +88,39 @@ def search_track(sp: spotipy.Spotify, track: dict) -> list[dict]:
 
 
 def get_playlist_track_ids(sp: spotipy.Spotify, playlist_id: str) -> set[str]:
-    # Use sp.playlist() — the /tracks endpoint is deprecated and returns 403.
-    # Current API returns the paged track collection under the "items" key.
+    # sp.playlist() returns tracks under "items" key (current API) or "tracks" (older).
+    # First page may have items=[] with total>0 — must follow "next" URL to get tracks.
     ids = set()
     playlist = sp.playlist(playlist_id)
-    results = playlist.get("items") or playlist.get("tracks")
-    while results:
-        for item in results["items"]:
-            if item.get("track") and item["track"].get("id"):
+
+    page = playlist.get("items") or playlist.get("tracks")
+    if page is None:
+        logging.warning(f"  Playlist response has no items/tracks key. Keys: {list(playlist.keys())}")
+        return ids
+
+    api_total = page.get("total", "?")
+    logging.info(f"  Playlist API: total={api_total} first_page_count={len(page.get('items') or [])} has_next={bool(page.get('next'))}")
+
+    page_num = 0
+    while page:
+        page_num += 1
+        items = page.get("items") or []
+        logging.info(f"  Paginating: page={page_num} items={len(items)} running_total={len(ids)}")
+        for item in items:
+            if item and item.get("track") and item["track"].get("id"):
                 ids.add(item["track"]["id"])
-        results = sp.next(results) if results.get("next") else None
+        if page.get("next"):
+            try:
+                page = sp.next(page)
+            except Exception as e:
+                logging.warning(f"  Pagination stopped at page {page_num}: {e}")
+                break
+        else:
+            break
+
+    logging.info(f"  Read {len(ids)} unique track IDs (API reported total={api_total})")
+    if len(ids) == 0 and api_total not in (0, "?", "0"):
+        logging.warning(f"  WARNING: API says {api_total} tracks but read 0 IDs — possible API pagination issue")
     return ids
 
 

@@ -111,15 +111,16 @@ def generate_report(history: dict, low_conf_this_run: list[dict], total_tracks: 
 
     lines += [
         f"",
-        f"## Low Confidence Matches ({len(low_conf_this_run)})",
+        f"## Low Confidence — Not Added ({len(low_conf_this_run)})",
         f"",
-        f"These were added to the playlist this run, but the match was uncertain.",
-        f"The Spotify track may not be the right version.",
+        f"A partial Spotify match was found but confidence was too low to add automatically.",
+        f"Check each one manually and add to the playlist if correct.",
+        f"These will be retried on the next run.",
         f"",
     ]
     if low_conf_this_run:
-        lines.append("| Your Track | Matched To |")
-        lines.append("|------------|------------|")
+        lines.append("| Your Track | Closest Spotify Match |")
+        lines.append("|------------|-----------------------|")
         for r in sorted(low_conf_this_run, key=lambda x: x["track"].lower()):
             lines.append(f"| {r['track']} | {r['matched']} |")
     else:
@@ -131,6 +132,17 @@ def generate_report(history: dict, low_conf_this_run: list[dict], total_tracks: 
     return report_path
 
 
+def _eta(start_time: datetime, done: int, total: int) -> str:
+    """Return a human-readable ETA string, e.g. '~4m 30s'."""
+    if done == 0:
+        return "..."
+    elapsed = (datetime.now() - start_time).total_seconds()
+    rate = done / elapsed            # tracks per second
+    remaining = (total - done) / rate
+    m, s = divmod(int(remaining), 60)
+    return f"~{m}m {s}s" if m else f"~{s}s"
+
+
 def main():
     start = datetime.now()
     log_file = setup_logging()
@@ -140,44 +152,49 @@ def main():
     config = load_json(CONFIG_PATH)
     if not config:
         logging.error(f"Config not found: {CONFIG_PATH}")
-        print(f"ERROR: Config not found at {CONFIG_PATH}")
+        print(f"\nERROR: Config not found at {CONFIG_PATH}")
         input("\nPress Enter to exit...")
         return
     missing = validate_config(config)
     if missing:
         logging.error(f"Config missing required keys: {missing}")
-        print(f"ERROR: Config is missing required keys: {missing}")
+        print(f"\nERROR: Config is missing required keys: {missing}")
         print(f"  Edit {CONFIG_PATH} and fill in the missing values.")
         input("\nPress Enter to exit...")
         return
 
     history = load_json(HISTORY_PATH)
 
-    print("\n=== SpotifyPlaylistGen ===")
-    print(f"Log: {log_file}\n")
+    print(f"\n{'='*60}")
+    print(f"  SpotifyPlaylistGen")
+    print(f"  Log: {log_file}")
+    print(f"{'='*60}")
 
-    # --- Stage 1: Parse library ---
-    print("Stage 1/4: Reading AudioMirror library...")
+    # -------------------------------------------------------------------------
+    # Stage 1: Parse library
+    # Reads AudioMirror XML files and classifies each track:
+    #   - "added"    → history says it's matched; should already be in playlist
+    #   - "unmatched"→ tried before, not found; will retry this run
+    #   - (none)     → brand new track, never searched
+    #   - "custom"   → user marked as not-on-Spotify; always skipped
+    # -------------------------------------------------------------------------
+    print(f"\n[Stage 1/4] Reading local music library...")
     logging.info("Stage 1: Parsing XML library")
     try:
         tracks = parse_library(config["audiomirror_path"])
     except Exception as e:
         logging.error(f"Failed to parse library: {e}")
-        print(f"ERROR: Could not read AudioMirror library: {e}")
+        print(f"  ERROR: Could not read AudioMirror library: {e}")
         input("\nPress Enter to exit...")
         return
     if not tracks:
-        print(f"ERROR: No tracks found at {config['audiomirror_path']}")
+        print(f"  ERROR: No tracks found at {config['audiomirror_path']}")
         input("\nPress Enter to exit...")
         return
-    logging.info(f"  Found {len(tracks)} tracks")
-    print(f"  Found {len(tracks)} tracks")
 
-    # Classify library tracks by history state
-    to_search   = []   # no history entry OR previously unmatched — need a Spotify search
-    in_history  = []   # history says "added" — should be in playlist
-    custom      = []   # history says "custom" — not on Spotify by design, always skip
-
+    to_search  = []
+    in_history = []
+    custom     = []
     for t in tracks:
         state = history.get(track_key(t), {}).get("state")
         if state == ADDED:
@@ -185,32 +202,41 @@ def main():
         elif state == "custom":
             custom.append(t)
         else:
-            # No entry, or "unmatched" — retry search
             to_search.append(t)
 
-    print(f"  Already matched: {len(in_history)}  |  To search: {len(to_search)}  |  Custom (skip): {len(custom)}")
-    logging.info(f"  Classified: matched={len(in_history)} to_search={len(to_search)} custom={len(custom)}")
+    logging.info(f"  Found {len(tracks)} tracks — matched={len(in_history)} to_search={len(to_search)} custom={len(custom)}")
+    print(f"  Found {len(tracks)} tracks in library")
+    print(f"  Already matched : {len(in_history):>5}  (saved in history, should be in playlist)")
+    print(f"  Need searching  : {len(to_search):>5}  (new tracks or previous 'not found')")
+    print(f"  Custom / skip   : {len(custom):>5}  (manually marked as not on Spotify)")
 
-    # --- Stage 2: Connect to Spotify ---
-    print("\nStage 2/4: Connecting to Spotify...")
+    # -------------------------------------------------------------------------
+    # Stage 2: Connect to Spotify + compute sync diff
+    # Reads the live playlist and computes:
+    #   - tracks in history["added"] that are MISSING from the playlist (need upload)
+    #   - tracks already confirmed present (nothing to do for them)
+    # -------------------------------------------------------------------------
+    print(f"\n[Stage 2/4] Connecting to Spotify...")
     logging.info("Stage 2: Connecting to Spotify")
     try:
         sp = create_client(config)
         user = sp.current_user()
         logging.info(f"  Authenticated as: {user.get('display_name')} ({user.get('id')})")
-        print(f"  Authenticated as: {user.get('display_name')} ({user.get('id')})")
+        print(f"  Logged in as: {user.get('display_name')} ({user.get('id')})")
     except Exception as e:
         logging.error(f"Spotify auth failed: {e}")
-        print(f"ERROR: Could not connect to Spotify: {e}")
+        print(f"  ERROR: Could not connect to Spotify: {e}")
         input("\nPress Enter to exit...")
         return
+
+    print(f"  Reading playlist contents...", end="", flush=True)
     try:
         existing_ids = get_playlist_track_ids(sp, config["spotify_playlist_id"])
         logging.info(f"  Playlist currently has {len(existing_ids)} tracks")
-        print(f"  Playlist currently has {len(existing_ids)} tracks")
+        print(f" {len(existing_ids)} tracks found")
     except Exception as e:
         logging.error(f"Failed to read playlist: {e}")
-        print(f"ERROR: Could not read playlist: {e}")
+        print(f"\n  ERROR: Could not read playlist: {e}")
         input("\nPress Enter to exit...")
         return
 
@@ -221,26 +247,26 @@ def main():
         nonlocal flushed_total
         if not uris:
             return
+        print(f"\n  --> Uploading {len(uris)} tracks to Spotify playlist...", end="", flush=True)
         try:
             add_tracks_to_playlist(sp, config["spotify_playlist_id"], uris)
             for uri in uris:
                 existing_ids.add(uri.split(":")[-1])
             flushed_total += len(uris)
-            logging.info(f"  Uploaded {len(uris)} tracks{' (' + label + ')' if label else ''} — playlist total: {len(existing_ids)}")
+            print(f" done. Playlist now has {len(existing_ids)} tracks.")
+            logging.info(f"  Uploaded {len(uris)} tracks ({label}) — playlist total: {len(existing_ids)}")
         except Exception as e:
+            print(f" FAILED: {e}")
             logging.error(f"Upload failed ({label}): {e}")
-            print(f"WARNING: Could not upload batch to playlist: {e}")
 
-    # --- Compute diff: matched tracks not yet in playlist ---
-    # This is the core sync logic: library says "added", but playlist doesn't have it yet.
+    # Diff: matched in history but missing from live playlist
     missing_uris = [
         v["spotify_uri"]
-        for k, v in history.items()
+        for v in history.values()
         if v.get("state") == ADDED
         and v.get("spotify_uri")
         and v["spotify_uri"].split(":")[-1] not in existing_ids
     ]
-
     already_in_playlist = sum(
         1 for v in history.values()
         if v.get("state") == ADDED
@@ -248,85 +274,118 @@ def main():
         and v["spotify_uri"].split(":")[-1] in existing_ids
     )
 
-    print(f"\n  Sync status:")
-    print(f"    {already_in_playlist} matched tracks already in playlist")
-    print(f"    {len(missing_uris)} matched tracks missing from playlist (will upload)")
-    print(f"    {len(to_search)} tracks still need searching")
+    print(f"\n  Sync diff:")
+    print(f"    {already_in_playlist:>5}  already in playlist  (no action needed)")
+    print(f"    {len(missing_uris):>5}  matched but missing  (will upload now)")
+    print(f"    {len(to_search):>5}  not yet searched     (will search in Stage 3)")
     logging.info(f"  Sync: in_playlist={already_in_playlist} missing={len(missing_uris)} to_search={len(to_search)}")
 
-    # --- Early exit: playlist is fully in sync and no new tracks to search ---
+    # -------------------------------------------------------------------------
+    # Early exit: everything is already in sync
+    # -------------------------------------------------------------------------
     if not missing_uris and not to_search:
-        elapsed = (datetime.now() - start).seconds
-        print(f"\nPlaylist is fully in sync with library. Nothing to do.")
-        print(f"  {already_in_playlist} tracks in playlist | {len(custom)} custom (skipped) | {len(tracks)} library total")
-        print(f"  Time: {elapsed}s  |  Log: {log_file}")
+        elapsed = int((datetime.now() - start).total_seconds())
+        print(f"\n{'='*60}")
+        print(f"  Playlist is fully in sync. Nothing to do.")
+        print(f"  {already_in_playlist} tracks in playlist | {len(custom)} custom | {len(tracks)} library total")
+        print(f"  Time: {elapsed}s")
+        print(f"{'='*60}")
         logging.info(f"Up to date. InPlaylist={already_in_playlist} Time={elapsed}s")
         input("\nPress Enter to exit...")
         return
 
-    # --- Upload missing matched tracks (sync recovery) ---
+    # -------------------------------------------------------------------------
+    # Recovery: upload history-matched tracks missing from playlist
+    # These were matched in a previous run but never made it to Spotify
+    # (e.g. interrupted run, or previous payload bug)
+    # -------------------------------------------------------------------------
     if missing_uris:
-        print(f"\n  Uploading {len(missing_uris)} previously matched tracks to playlist...")
         flush_to_playlist(missing_uris, "recovery")
-        # Brief pause after bulk upload to avoid rate-limiting the first search
         if to_search:
-            print("  Waiting 5s before searching (rate limit buffer)...")
-            time.sleep(5)
+            print(f"  Waiting 15s before searching (prevents rate limiting after bulk upload)...")
+            for i in range(15, 0, -1):
+                print(f"\r  Waiting {i}s... ", end="", flush=True)
+                time.sleep(1)
+            print(f"\r  Ready.              ")
 
     if not to_search:
-        # Nothing left to search — recovery was the only work needed
-        elapsed = (datetime.now() - start).seconds
-        print(f"\nSync complete. Uploaded {flushed_total} previously matched tracks.")
-        print(f"  Time: {elapsed}s  |  Log: {log_file}")
+        elapsed = int((datetime.now() - start).total_seconds())
+        print(f"\n  All tracks already matched. Sync complete.")
+        print(f"  Uploaded {flushed_total} previously matched tracks.")
         logging.info(f"Recovery only. Uploaded={flushed_total} Time={elapsed}s")
         input("\nPress Enter to exit...")
         return
 
-    # --- Stage 3: Search for undecided / previously unmatched tracks ---
-    print(f"\nStage 3/4: Searching Spotify for {len(to_search)} tracks...")
-    logging.info(f"Stage 3: Searching {len(to_search)} tracks")
+    # -------------------------------------------------------------------------
+    # Stage 3: Search Spotify for unmatched tracks
+    # For each track, searches Spotify and rates the match:
+    #   EXACT  — title, artist and album all match
+    #   HIGH   — title + artist match (different album/version)
+    #   LOW    — partial match (title matches but artist differs, etc.)
+    #   NONE   — nothing found at all
+    # EXACT/HIGH/LOW are all added to playlist. LOW flagged in report.
+    # NONE is saved to history and retried on next run.
+    # Flushes to Spotify every 100 matched tracks (progress is never lost).
+    # Saves history to disk every 25 tracks.
+    # -------------------------------------------------------------------------
+    n = len(to_search)
+    print(f"\n[Stage 3/4] Searching Spotify for {n} tracks...")
+    print(f"  (EXACT/HIGH/LOW = added to playlist | NONE = not found, retried next run)")
+    print(f"  Each track shown as it's searched. Progress auto-saves every 25 tracks.\n")
+    logging.info(f"Stage 3: Searching {n} tracks")
 
     to_add_uris  = []
     needs_review = []
     added = unmatched = errors = 0
     history_dirty = False
+    search_start = datetime.now()
+
+    CONF_SYMBOL = {"exact": "✓ EXACT", "high": "✓ HIGH ", "low": "✗ LOW  ", "none": "✗ NONE "}
 
     for i, track in enumerate(to_search, 1):
-        key = track_key(track)
+        key   = track_key(track)
+        label = f"{track['primary_artist']} - {track['title']}"
 
-        if i % 100 == 0 or i == 1:
-            print(f"  [{i}/{len(to_search)}] Searching... (matched={added} unmatched={unmatched} errors={errors} uploaded={flushed_total})")
+        # Live updating line: show what's being searched right now
+        print(f"\r  [{i:>{len(str(n))}}/{n}] {label[:55]:<55}", end="", flush=True)
 
         try:
             matches = search_track(sp, track)
         except Exception as e:
-            logging.warning(f"Search failed for {track['primary_artist']} - {track['title']}: {e}")
+            print(f"  ERROR")
+            logging.warning(f"Search failed for {label}: {e}")
             errors += 1
+            time.sleep(0.1)
             continue
 
         best       = matches[0] if matches else None
         confidence = best["confidence"] if best else "none"
+        symbol     = CONF_SYMBOL.get(confidence, "?")
+
+        # EXACT/HIGH: quiet success, overwrite line. LOW/NONE: print permanently so user sees rejections.
+        if confidence in ("exact", "high"):
+            print(f"  {symbol}", end="\r", flush=True)
+        elif confidence == "low":
+            print(f"  {symbol}  (partial: {best['artist']} - {best['name']})")
+        else:
+            print(f"  {symbol}")
 
         if confidence in ("exact", "high"):
             decision, uri = ADDED, best["uri"]
         elif confidence == "low":
-            decision, uri = ADDED, best["uri"]
+            decision, uri = UNMATCHED, None   # not added — partial match only
             needs_review.append({
-                "track":      f"{track['primary_artist']} - {track['title']}",
+                "track":      label,
                 "matched":    f"{best['artist']} - {best['name']} ({best['album']})",
                 "confidence": "low",
             })
         else:
             decision, uri = UNMATCHED, None
-            needs_review.append({
-                "track":      f"{track['primary_artist']} - {track['title']}",
-                "matched":    None,
-                "confidence": "none",
-            })
+            needs_review.append({"track": label, "matched": None, "confidence": "none"})
 
         history[key] = {
             "state":       decision,
-            "track":       f"{track['primary_artist']} - {track['title']}",
+            "track":       label,
             "spotify_uri": uri,
             "decided_at":  datetime.now().isoformat(),
         }
@@ -339,62 +398,60 @@ def main():
         else:
             unmatched += 1
 
-        logging.info(f"[{confidence.upper()}] {track['primary_artist']} - {track['title']}")
+        logging.info(f"[{confidence.upper()}] {label}")
+
+        time.sleep(0.1)  # 100ms between searches — prevents rate limiting (~10/s max)
 
         # Periodic history save
         if i % SAVE_INTERVAL == 0 and history_dirty:
             save_json(HISTORY_PATH, history)
             history_dirty = False
 
-        # Periodic playlist flush — progress is safe even if run is interrupted
+        # Periodic playlist flush — print on new line, resume \r progress after
         if len(to_add_uris) >= FLUSH_INTERVAL:
-            flush_to_playlist(to_add_uris, f"batch at track {i}")
+            print()  # end the \r line before printing upload status
+            flush_to_playlist(to_add_uris, f"batch at {i}/{n}")
             to_add_uris = []
+            eta = _eta(search_start, i, n)
+            print(f"  Progress: {i}/{n} searched | {added} matched | {unmatched} not found | {errors} errors | ETA {eta}")
+
+    print()  # end final \r line
 
     # Final history save
     if history_dirty:
         save_json(HISTORY_PATH, history)
 
-    # --- Stage 4: Final flush of remaining matched tracks ---
-    remaining = len(to_add_uris)
-    print(f"\nStage 4/4: Final upload of {remaining} tracks (already uploaded {flushed_total})...")
-    logging.info(f"Stage 4: Final upload {remaining} tracks")
+    # -------------------------------------------------------------------------
+    # Stage 4: Final flush of any remaining matched tracks
+    # -------------------------------------------------------------------------
+    print(f"\n[Stage 4/4] Final upload...")
+    logging.info(f"Stage 4: Final upload {len(to_add_uris)} tracks")
     flush_to_playlist(to_add_uris, "final")
 
-    # --- Summary ---
-    elapsed   = (datetime.now() - start).seconds
-    low_conf  = [r for r in needs_review if r["confidence"] == "low"]
-    no_match  = [r for r in needs_review if r["confidence"] == "none"]
+    # -------------------------------------------------------------------------
+    # Summary
+    # -------------------------------------------------------------------------
+    elapsed  = int((datetime.now() - start).total_seconds())
+    low_conf = [r for r in needs_review if r["confidence"] == "low"]
+    no_match = [r for r in needs_review if r["confidence"] == "none"]
 
-    print(f"""
-=== Summary ===
-  Library total:  {len(tracks)}
-  Already in sync:{already_in_playlist} (were already in playlist)
-  Recovered:      {len(missing_uris)} (matched in history, now uploaded)
-  Newly matched:  {added} (searched and matched this run)
-  Unmatched:      {unmatched} (not found on Spotify — will retry next run)
-  Search errors:  {errors}
-  Custom (skip):  {len(custom)}
-  Total uploaded: {flushed_total}
-  Time:           {elapsed}s
-  Log:            {log_file}
-""")
-
-    if no_match:
-        print(f"=== Could Not Match ({len(no_match)}) ===")
-        for r in no_match:
-            print(f"  - {r['track']}")
-
-    if low_conf:
-        print(f"\n=== Low Confidence - Worth Checking ({len(low_conf)}) ===")
-        for r in low_conf:
-            print(f"  - {r['track']}")
-            print(f"      matched to: {r['matched']}")
+    print(f"\n{'='*60}")
+    print(f"  Run complete in {elapsed}s")
+    print(f"{'='*60}")
+    print(f"  Library total      : {len(tracks)}")
+    print(f"  Already in playlist: {already_in_playlist}  (confirmed present, no action)")
+    print(f"  Recovered          : {len(missing_uris)}  (matched in history, uploaded now)")
+    print(f"  Newly matched      : {added}  (EXACT or HIGH confidence — added to playlist)")
+    print(f"  Not added          : {unmatched}  (LOW confidence or no match — see report, retried next run)")
+    print(f"  Search errors      : {errors}")
+    print(f"  Custom / skipped   : {len(custom)}")
+    print(f"  Total uploaded     : {flushed_total}")
+    print(f"{'='*60}")
 
     logging.info(f"Done. InSync={already_in_playlist} Recovered={len(missing_uris)} Added={added} Unmatched={unmatched} Errors={errors} Uploaded={flushed_total} Time={elapsed}s")
 
     report_path = generate_report(history, low_conf, total_tracks=len(tracks))
-    print(f"\nMatch report written to:\n  {report_path}")
+    print(f"\n  Match report: {report_path}")
     logging.info(f"Report: {report_path}")
 
     input("\nPress Enter to exit...")
