@@ -59,13 +59,16 @@ Target structure:
 ```
 src/
   xml_parser.py          — Parse AudioMirror XML
-  track_normalizer.py    — Normalize artist/title strings
-  spotify_client.py      — Safe wrapper around Spotify API
-  matcher.py             — Match local tracks to Spotify results
-  playlist_sync.py       — Reconcile desired vs actual playlist state
-  history_store.py       — Manage history.json safely
+  matcher.py             — Normalize strings + match/score tracks
+  spotify_interface.py   — ABC for swappable API clients
+  spotify_client.py      — Real Spotify API wrapper (retries, pagination)
+  spotify_simulator.py   — Deterministic mock for testing
+  reconciler.py          — Deterministic playlist state reconciliation
+  history_store.py       — Manage history.json safely (atomic writes)
+  config.py              — Config loading and validation
   report_generator.py    — Produce human-readable results
-  main.py                — CLI entrypoint
+  lockfile.py            — Concurrent run protection
+  main.py                — CLI entrypoint + pipeline orchestration
 ```
 
 No module should perform unrelated tasks.
@@ -191,7 +194,7 @@ Modules that must support unit tests:
 
 - `xml_parser`
 - `matcher`
-- `playlist_sync`
+- `reconciler`
 - `history_store`
 
 Spotify API calls must be mockable.
