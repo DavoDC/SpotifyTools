@@ -204,7 +204,7 @@ def run_pipeline(client: SpotifyInterface,
         print(f"\n[Stage 3/4] Searching Spotify for {n} tracks...")
         logging.info(f"Stage 3: Searching {n} tracks")
 
-        CONF_SYMBOL = {"exact": "✓ EXACT", "high": "✓ HIGH ", "low": "✗ LOW  ", "none": "✗ NONE "}
+        CONF_SYMBOL = {"exact": "+ EXACT", "high": "+ HIGH ", "low": "- LOW  ", "none": "- NONE "}
 
         for i, t in enumerate(plan.to_search, 1):
             key = track_key(t)
@@ -358,6 +358,11 @@ def run_pipeline(client: SpotifyInterface,
 
 
 def main():
+    # Force UTF-8 output on Windows (cp1252 can't handle music metadata)
+    if sys.stdout.encoding != "utf-8":
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     log_file = setup_logging()
     logging.info("=== SpotifyPlaylistGen started ===")
 
