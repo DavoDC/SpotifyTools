@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.spotify import create_client
+from src.spotify_client import RealSpotifyClient
 
 SILENT = "--silent" in sys.argv
 
@@ -48,7 +48,8 @@ except Exception as e:
     sys.exit(1)
 
 try:
-    sp = create_client(config)
+    client = RealSpotifyClient(config)
+    sp = client._sp
 except Exception as e:
     out(f"FATAL: Could not create Spotify client: {e}")
     sys.exit(1)
