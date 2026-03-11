@@ -37,6 +37,14 @@ SEARCH_DELAY_S = 0.1
 POST_BULK_DELAY_S = 15
 
 
+def _wait_for_exit():
+    """Prompt user to press Enter. Handles piped/non-interactive gracefully."""
+    try:
+        _wait_for_exit()
+    except EOFError:
+        pass
+
+
 def track_key(track: dict) -> str:
     return f"{track['primary_artist']}|{track['title']}"
 
@@ -157,7 +165,7 @@ def run_pipeline(client: SpotifyInterface,
         print(f"\n  Playlist is fully in sync. Nothing to do. ({elapsed}s)")
         logging.info(f"Up to date. Time={elapsed}s")
         if interactive:
-            input("\nPress Enter to exit...")
+            _wait_for_exit()
         return {
             "library_total": len(tracks),
             "synced": plan.skipped_synced,
@@ -340,7 +348,7 @@ def run_pipeline(client: SpotifyInterface,
     logging.info(f"Done. Synced={plan.skipped_synced} Recovered={len(recovered_list)} Added={added_count} Unmatched={unmatched_count} Removed={len(removed_uris)} Errors={error_count} Time={elapsed}s")
 
     if interactive:
-        input("\nPress Enter to exit...")
+        _wait_for_exit()
 
     return {
         "library_total": len(tracks),
@@ -372,12 +380,12 @@ def main():
     config = load_config(CONFIG_PATH)
     if not config:
         print(f"\nERROR: Config not found at {CONFIG_PATH}")
-        input("\nPress Enter to exit...")
+        _wait_for_exit()
         return
     missing = validate_config(config)
     if missing:
         print(f"\nERROR: Config missing keys: {missing}")
-        input("\nPress Enter to exit...")
+        _wait_for_exit()
         return
 
     print(f"\n{'='*60}")
@@ -398,7 +406,7 @@ def main():
         except Exception as e:
             logging.error(f"Spotify auth failed: {e}")
             print(f"  ERROR: Could not connect to Spotify: {e}")
-            input("\nPress Enter to exit...")
+            _wait_for_exit()
             return
 
     history_store = HistoryStore(HISTORY_PATH)
@@ -418,7 +426,7 @@ def main():
         if "Another instance" in str(e):
             print(f"\nERROR: {e}")
             logging.error(str(e))
-            input("\nPress Enter to exit...")
+            _wait_for_exit()
         else:
             raise
 
