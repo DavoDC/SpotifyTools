@@ -16,12 +16,14 @@ from datetime import datetime
 from src.config import load_config, validate_config, CONFIG_PATH
 from src.xml_parser import parse_library
 from src.history_store import HistoryStore
+from src.lockfile import LockFile
 from src.reconciler import reconcile, MAX_SEARCH_ATTEMPTS
 from src.report_generator import generate_report
 from src.spotify_interface import SpotifyInterface
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HISTORY_PATH = os.path.join(BASE_DIR, "data", "history.json")
+LOCK_PATH = os.path.join(BASE_DIR, "data", "run.lock")
 LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
 REPORT_DIR = os.path.join(BASE_DIR, "data", "reports")
 
@@ -396,15 +398,24 @@ def main():
 
     history_store = HistoryStore(HISTORY_PATH)
 
-    run_pipeline(
-        client=client,
-        config=config,
-        history_store=history_store,
-        history_path=HISTORY_PATH,
-        report_dir=REPORT_DIR,
-        search_delay=SEARCH_DELAY_S if not simulate else 0,
-        interactive=True,
-    )
+    try:
+        with LockFile(LOCK_PATH):
+            run_pipeline(
+                client=client,
+                config=config,
+                history_store=history_store,
+                history_path=HISTORY_PATH,
+                report_dir=REPORT_DIR,
+                search_delay=SEARCH_DELAY_S if not simulate else 0,
+                interactive=True,
+            )
+    except RuntimeError as e:
+        if "Another instance" in str(e):
+            print(f"\nERROR: {e}")
+            logging.error(str(e))
+            input("\nPress Enter to exit...")
+        else:
+            raise
 
 
 if __name__ == "__main__":
