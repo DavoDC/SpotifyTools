@@ -1,0 +1,259 @@
+"""
+Tests for src/spotify_client.py (RealSpotifyClient) and src/spotify_simulator.py.
+All Spotify API calls are mocked — no real network access.
+
+IMPORTANT: Spotify API returns playlist items under an "item" key (as of 2026),
+NOT "track". Tests must use the current format.
+"""
+import pytest
+from unittest.mock import MagicMock, patch
+import spotipy
+
+from src.spotify_client import RealSpotifyClient, _get_track_obj
+from src.spotify_simulator import SimulatedSpotifyClient
+from src.spotify_interface import AddResult, RemoveResult
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def sp_track(name, artist, album, uri="spotify:track:abc", track_id="abc"):
+    return {
+        "id": track_id,
+        "name": name,
+        "artists": [{"name": artist}],
+        "album": {"name": album},
+        "uri": uri,
+    }
+
+
+def search_response(items):
+    return {"tracks": {"items": items}}
+
+
+def playlist_page(ids, next_url=None):
+    """Current Spotify API format: each item uses "item" key (NOT "track")."""
+    return {
+        "items": [{"item": {"id": i, "uri": f"spotify:track:{i}"}} for i in ids],
+        "next": next_url,
+    }
+
+
+def playlist_page_old_format(ids, next_url=None):
+    """Old Spotify API format: each item uses "track" key."""
+    return {
+        "items": [{"track": {"id": i, "uri": f"spotify:track:{i}"}} for i in ids],
+        "next": next_url,
+    }
+
+
+# ── _get_track_obj ───────────────────────────────────────────────────────────
+
+def test_get_track_obj_new_format():
+    item = {"item": {"id": "abc", "uri": "spotify:track:abc"}}
+    assert _get_track_obj(item)["id"] == "abc"
+
+def test_get_track_obj_old_format():
+    item = {"track": {"id": "abc", "uri": "spotify:track:abc"}}
+    assert _get_track_obj(item)["id"] == "abc"
+
+def test_get_track_obj_prefers_item_over_track():
+    item = {"item": {"id": "new"}, "track": {"id": "old"}}
+    assert _get_track_obj(item)["id"] == "new"
+
+def test_get_track_obj_returns_none_when_neither_key():
+    item = {"added_at": "2024-01-01"}
+    assert _get_track_obj(item) is None
+
+def test_get_track_obj_returns_none_for_null_item():
+    item = {"item": None, "track": None}
+    assert _get_track_obj(item) is None
+
+
+# ── SimulatedSpotifyClient ───────────────────────────────────────────────────
+
+def test_simulator_empty_fixture():
+    client = SimulatedSpotifyClient()
+    assert client.get_playlist_uris("any") == set()
+    assert client.playlist_contents == []
+
+
+def test_simulator_search_returns_fixture_data():
+    fixture = {
+        "search_responses": {
+            "Eminem|Lose Yourself": [
+                {"spotify_id": "abc", "name": "Lose Yourself", "artist": "Eminem",
+                 "album": "8 Mile", "confidence": "exact", "uri": "spotify:track:abc"}
+            ]
+        }
+    }
+    client = SimulatedSpotifyClient(fixture_data=fixture)
+    results = client.search_track({"primary_artist": "Eminem", "title": "Lose Yourself"})
+    assert len(results) == 1
+    assert results[0]["confidence"] == "exact"
+
+
+def test_simulator_search_no_match():
+    fixture = {"search_responses": {"Unknown|Ghost": []}}
+    client = SimulatedSpotifyClient(fixture_data=fixture)
+    results = client.search_track({"primary_artist": "Unknown", "title": "Ghost"})
+    assert results == []
+
+
+def test_simulator_add_tracks():
+    client = SimulatedSpotifyClient()
+    result = client.add_tracks("pl", ["spotify:track:a", "spotify:track:b"])
+    assert result.succeeded == ["spotify:track:a", "spotify:track:b"]
+    assert set(client.playlist_contents) == {"spotify:track:a", "spotify:track:b"}
+
+
+def test_simulator_add_no_duplicates():
+    client = SimulatedSpotifyClient(fixture_data={"initial_playlist": ["spotify:track:a"]})
+    client.add_tracks("pl", ["spotify:track:a", "spotify:track:b"])
+    assert client.playlist_contents.count("spotify:track:a") == 1
+
+
+def test_simulator_remove_tracks():
+    client = SimulatedSpotifyClient(fixture_data={"initial_playlist": ["spotify:track:a", "spotify:track:b"]})
+    result = client.remove_tracks("pl", ["spotify:track:a"])
+    assert result.removed_count == 1
+    assert client.playlist_contents == ["spotify:track:b"]
+
+
+def test_simulator_operations_logged():
+    client = SimulatedSpotifyClient()
+    client.search_track({"primary_artist": "A", "title": "B"})
+    client.get_playlist_uris("pl")
+    assert len(client.operations) == 2
+    assert client.operations[0]["type"] == "search"
+    assert client.operations[1]["type"] == "get_playlist"
+
+
+def test_simulator_error_scenario_timeout():
+    fixture = {"error_scenarios": {"Bad|Track": "timeout"}}
+    client = SimulatedSpotifyClient(fixture_data=fixture)
+    with pytest.raises(RuntimeError, match="Simulated timeout"):
+        client.search_track({"primary_artist": "Bad", "title": "Track"})
+
+
+def test_simulator_error_scenario_empty():
+    fixture = {
+        "search_responses": {"A|B": [{"spotify_id": "x", "name": "B", "artist": "A",
+                                       "album": "C", "confidence": "exact", "uri": "u:x"}]},
+        "error_scenarios": {"A|B": "empty"}
+    }
+    client = SimulatedSpotifyClient(fixture_data=fixture)
+    # Error scenario overrides search_responses
+    assert client.search_track({"primary_artist": "A", "title": "B"}) == []
+
+
+def test_simulator_find_duplicates():
+    client = SimulatedSpotifyClient(fixture_data={
+        "initial_playlist": ["spotify:track:a", "spotify:track:b", "spotify:track:a"]
+    })
+    dupes = client.find_duplicates("pl")
+    assert dupes == {"spotify:track:a": 1}
+
+
+def test_simulator_current_user():
+    client = SimulatedSpotifyClient()
+    user = client.current_user()
+    assert user["id"] == "testuser123"
+
+
+# ── RealSpotifyClient (mocked spotipy) ──────────────────────────────────────
+# These test the class methods with a mocked spotipy.Spotify instance.
+
+def _mock_real_client():
+    """Create a RealSpotifyClient with mocked internals."""
+    with patch.object(RealSpotifyClient, '__init__', lambda self, config: None):
+        client = RealSpotifyClient.__new__(RealSpotifyClient)
+        client._sp = MagicMock()
+        return client
+
+
+def test_real_client_search_returns_scored():
+    client = _mock_real_client()
+    track = {"primary_artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile"}
+    client._sp.search.return_value = search_response([
+        sp_track("Lose Yourself", "Eminem", "8 Mile", uri="spotify:track:xyz")
+    ])
+
+    results = client.search_track(track)
+    assert len(results) == 1
+    assert results[0]["uri"] == "spotify:track:xyz"
+
+
+def test_real_client_search_fallback():
+    client = _mock_real_client()
+    track = {"primary_artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile"}
+    client._sp.search.side_effect = [
+        search_response([]),
+        search_response([sp_track("Lose Yourself", "Eminem", "8 Mile")]),
+    ]
+
+    results = client.search_track(track)
+    assert len(results) == 1
+    assert client._sp.search.call_count == 2
+
+
+def test_real_client_get_playlist_uris_new_format():
+    client = _mock_real_client()
+    client._sp.playlist.return_value = {"items": playlist_page(["id1", "id2"])}
+
+    uris = client.get_playlist_uris("playlist123")
+    assert uris == {"spotify:track:id1", "spotify:track:id2"}
+
+
+def test_real_client_get_playlist_uris_pagination():
+    client = _mock_real_client()
+    client._sp.playlist.return_value = {"items": playlist_page(["id1"], next_url="http://next")}
+    client._sp.next.return_value = playlist_page(["id2"])
+
+    uris = client.get_playlist_uris("playlist123")
+    assert uris == {"spotify:track:id1", "spotify:track:id2"}
+
+
+def test_real_client_get_playlist_uris_old_format():
+    client = _mock_real_client()
+    client._sp.playlist.return_value = {"items": playlist_page_old_format(["id1"])}
+
+    uris = client.get_playlist_uris("playlist123")
+    assert uris == {"spotify:track:id1"}
+
+
+def test_real_client_add_tracks_batches():
+    client = _mock_real_client()
+    client._sp._get_id.return_value = "pl123"
+    uris = [f"spotify:track:{i}" for i in range(250)]
+
+    result = client.add_tracks("pl123", uris)
+
+    assert len(result.succeeded) == 250
+    assert client._sp._post.call_count == 3
+
+
+def test_real_client_add_tracks_empty():
+    client = _mock_real_client()
+    result = client.add_tracks("pl123", [])
+    assert result.succeeded == []
+    assert result.failed == []
+
+
+def test_real_client_add_uses_items_endpoint():
+    client = _mock_real_client()
+    client._sp._get_id.return_value = "pl123"
+
+    client.add_tracks("pl123", ["spotify:track:a"])
+
+    call_url = client._sp._post.call_args[0][0]
+    assert call_url.endswith("/items")
+
+
+def test_real_client_remove_tracks():
+    client = _mock_real_client()
+    client._sp._get_id.return_value = "pl123"
+
+    result = client.remove_tracks("pl123", ["spotify:track:a", "spotify:track:b"])
+
+    assert result.removed_count == 2
+    client._sp._delete.assert_called_once()

@@ -1,0 +1,79 @@
+{
+  "search_responses": {
+    "Eminem|Lose Yourself": [
+      {
+        "spotify_id": "exact001",
+        "name": "Lose Yourself",
+        "artist": "Eminem",
+        "album": "8 Mile",
+        "confidence": "exact",
+        "uri": "spotify:track:exact001"
+      }
+    ],
+    "Queen|Bohemian Rhapsody": [
+      {
+        "spotify_id": "exact002",
+        "name": "Bohemian Rhapsody",
+        "artist": "Queen",
+        "album": "A Night at the Opera",
+        "confidence": "exact",
+        "uri": "spotify:track:exact002"
+      }
+    ],
+    "Michael Jackson|Billie Jean": [
+      {
+        "spotify_id": "exact003",
+        "name": "Billie Jean",
+        "artist": "Michael Jackson",
+        "album": "Thriller",
+        "confidence": "exact",
+        "uri": "spotify:track:exact003"
+      }
+    ],
+    "The Beatles|Hey Jude": [
+      {
+        "spotify_id": "high001",
+        "name": "Hey Jude",
+        "artist": "The Beatles",
+        "album": "1 (Remastered)",
+        "confidence": "high",
+        "uri": "spotify:track:high001"
+      }
+    ],
+    "Nirvana|Smells Like Teen Spirit": [
+      {
+        "spotify_id": "high002",
+        "name": "Smells Like Teen Spirit",
+        "artist": "Nirvana",
+        "album": "Nevermind (Remastered)",
+        "confidence": "high",
+        "uri": "spotify:track:high002"
+      }
+    ],
+    "Led Zeppelin|Stairway to Heaven": [
+      {
+        "spotify_id": "low001",
+        "name": "Stairway to Heaven (Live)",
+        "artist": "Led Zeppelin",
+        "album": "The Song Remains the Same",
+        "confidence": "low",
+        "uri": "spotify:track:low001"
+      }
+    ],
+    "Eagles|Hotel California": [
+      {
+        "spotify_id": "low002",
+        "name": "Hotel California (Live at the Forum)",
+        "artist": "Eagles",
+        "album": "Live at the Forum",
+        "confidence": "low",
+        "uri": "spotify:track:low002"
+      }
+    ],
+    "Unknown Local Band|Obscure Underground Track": [],
+    "Forgotten Artist|Rare Vinyl Only Release": [],
+    "Studio Ghost|Private Session Demo": []
+  },
+  "initial_playlist": [],
+  "error_scenarios": {}
+}
