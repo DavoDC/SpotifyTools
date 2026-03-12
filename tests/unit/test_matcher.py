@@ -89,3 +89,50 @@ def test_score_match_missing_album_does_not_crash():
     result = {"artists": [{"name": "Eminem"}], "name": "Lose Yourself", "album": {}}
     score = score_match(track, result)
     assert score in ("exact", "high", "low", "none")
+
+
+# ── clean_title: metadata tags ──────────────────────────────────────────────
+
+def test_clean_title_removes_album_version_explicit():
+    assert clean_title("Never Forget Me (Album Version Explicit)") == "Never Forget Me"
+
+def test_clean_title_removes_edit():
+    assert clean_title("Going To Be Alright (Edit)") == "Going To Be Alright"
+
+def test_clean_title_removes_remastered():
+    assert clean_title("Song Title (Remastered 2021)") == "Song Title"
+
+def test_clean_title_removes_remastered_no_year():
+    assert clean_title("Song Title (Remastered)") == "Song Title"
+
+def test_clean_title_removes_radio_edit():
+    assert clean_title("Song Title (Radio Edit)") == "Song Title"
+
+def test_clean_title_removes_with_artist():
+    assert clean_title("Song Title (with Snoop Dogg)") == "Song Title"
+
+def test_clean_title_preserves_meaningful_parens():
+    # "(Part 2)" is meaningful, not a tag — should be preserved
+    assert "Part 2" in clean_title("I Need a Girl (Part 2)")
+
+
+# ── score_match: clean_title applied to both sides ──────────────────────────
+
+def test_score_match_cleans_spotify_feat():
+    """Spotify result has '(feat. ...)' that local title doesn't — should still match."""
+    track = {"primary_artist": "Calvin Harris", "title": "Outside", "album": "Motion"}
+    result = {"artists": [{"name": "Calvin Harris"}], "name": "Outside (feat. Ellie Goulding)", "album": {"name": "Motion"}}
+    assert score_match(track, result) == "exact"
+
+def test_score_match_cleans_spotify_with_artist():
+    """Spotify result has '(with ...)' suffix — should match local title without it."""
+    track = {"primary_artist": "Eminem", "title": "From The D 2 The LBC", "album": ""}
+    result = {"artists": [{"name": "Eminem"}], "name": "From The D 2 The LBC (with Snoop Dogg)", "album": {"name": ""}}
+    # Both sides clean to same title, albums both empty → exact
+    assert score_match(track, result) == "exact"
+
+def test_score_match_cleans_local_album_version():
+    """Local title has '(Album Version Explicit)' — should match Spotify's clean title."""
+    track = {"primary_artist": "Bone Thugs-N-Harmony", "title": "Never Forget Me (Album Version Explicit)", "album": ""}
+    result = {"artists": [{"name": "Bone Thugs-N-Harmony"}], "name": "Never Forget Me", "album": {"name": ""}}
+    assert score_match(track, result) in ("exact", "high")
