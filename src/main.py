@@ -40,7 +40,7 @@ POST_BULK_DELAY_S = 15
 def _wait_for_exit():
     """Prompt user to press Enter. Handles piped/non-interactive gracefully."""
     try:
-        _wait_for_exit()
+        input("\nPress Enter to exit...")
     except EOFError:
         pass
 
@@ -205,6 +205,7 @@ def run_pipeline(client: SpotifyInterface,
     error_count = 0
     low_confidence = []
     to_add_uris = []
+    pending_tracks = {}  # uri -> (key, label, confidence, source_file) — awaiting Spotify confirmation
     history_dirty = False
     search_start = datetime.now()
 
@@ -244,19 +245,26 @@ def run_pipeline(client: SpotifyInterface,
 
             if confidence in ("exact", "high"):
                 uri = best["uri"]
-                history_store.set_track(history, key,
-                                        state=ADDED,
-                                        display=label,
-                                        spotify_uri=uri,
-                                        match_confidence=confidence,
-                                        source_file=t.get("source_file"))
-                if uri not in playlist_uris:
+                if uri in playlist_uris:
+                    # Already confirmed in playlist — mark added immediately
+                    history_store.set_track(history, key,
+                                            state=ADDED,
+                                            display=label,
+                                            spotify_uri=uri,
+                                            match_confidence=confidence,
+                                            source_file=t.get("source_file"))
+                else:
+                    # Queue for upload — mark added only after Spotify confirms
                     to_add_uris.append(uri)
+                    pending_tracks[uri] = (key, label, confidence, t.get("source_file"))
                 added_count += 1
             elif confidence == "low":
-                # LOW = not added, saved for review
+                # LOW = not added, saved for review. Check exhaustion.
+                existing = history.get("tracks", {}).get(key, {})
+                attempts = existing.get("search_attempts", 0) + 1
+                state = "exhausted" if attempts >= MAX_SEARCH_ATTEMPTS else UNMATCHED
                 history_store.set_track(history, key,
-                                        state=UNMATCHED,
+                                        state=state,
                                         display=label,
                                         match_confidence="low",
                                         source_file=t.get("source_file"))
@@ -267,7 +275,7 @@ def run_pipeline(client: SpotifyInterface,
                 })
                 unmatched_count += 1
             else:
-                # Check if should be exhausted
+                # NONE match — check if should be exhausted
                 existing = history.get("tracks", {}).get(key, {})
                 attempts = existing.get("search_attempts", 0) + 1
                 state = "exhausted" if attempts >= MAX_SEARCH_ATTEMPTS else UNMATCHED
@@ -294,6 +302,17 @@ def run_pipeline(client: SpotifyInterface,
                 result = client.add_tracks(playlist_id, to_add_uris)
                 for uri in result.succeeded:
                     playlist_uris.add(uri)
+                    if uri in pending_tracks:
+                        pk, pl, pc, ps = pending_tracks.pop(uri)
+                        history_store.set_track(history, pk, state=ADDED,
+                                                display=pl, spotify_uri=uri,
+                                                match_confidence=pc, source_file=ps)
+                for uri in result.failed:
+                    if uri in pending_tracks:
+                        pk, pl, _, ps = pending_tracks.pop(uri)
+                        history_store.set_track(history, pk, state=UNMATCHED,
+                                                display=pl, source_file=ps)
+                        logging.warning(f"Upload failed for {pl}, marked unmatched for retry")
                 # Save history AFTER successful playlist write
                 history_store.save(history)
                 history_dirty = False
@@ -314,9 +333,27 @@ def run_pipeline(client: SpotifyInterface,
         result = client.add_tracks(playlist_id, to_add_uris)
         for uri in result.succeeded:
             playlist_uris.add(uri)
+            if uri in pending_tracks:
+                pk, pl, pc, ps = pending_tracks.pop(uri)
+                history_store.set_track(history, pk, state=ADDED,
+                                        display=pl, spotify_uri=uri,
+                                        match_confidence=pc, source_file=ps)
+                history_dirty = True
+        for uri in result.failed:
+            if uri in pending_tracks:
+                pk, pl, _, ps = pending_tracks.pop(uri)
+                history_store.set_track(history, pk, state=UNMATCHED,
+                                        display=pl, source_file=ps)
+                logging.warning(f"Upload failed for {pl}, marked unmatched for retry")
+                history_dirty = True
 
     # Final history save
-    if history_dirty:
+    if history_dirty or pending_tracks:
+        # Any remaining pending_tracks had no upload result — mark unmatched for safety
+        for uri, (pk, pl, _, ps) in pending_tracks.items():
+            history_store.set_track(history, pk, state=UNMATCHED,
+                                    display=pl, source_file=ps)
+            logging.warning(f"Pending track {pl} never confirmed, marked unmatched")
         history_store.save(history)
 
     elapsed = int((datetime.now() - start).total_seconds())

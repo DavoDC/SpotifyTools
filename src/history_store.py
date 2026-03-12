@@ -106,7 +106,7 @@ class HistoryStore:
             "spotify_uri": spotify_uri,
             "spotify_id": spotify_id,
             "match_confidence": match_confidence,
-            "search_attempts": prev_attempts + (1 if state in ("unmatched", "added") else 0),
+            "search_attempts": prev_attempts + (1 if state in ("unmatched", "added", "exhausted") else 0),
             "first_seen": existing.get("first_seen", now),
             "last_updated": now,
             "source_file": source_file or existing.get("source_file"),

@@ -1,10 +1,32 @@
 import re
 
 
+# Common music metadata tags that appear in parentheses/brackets.
+# These pollute search queries and title comparisons.
+_TAGS_PATTERN = re.compile(
+    r'\s*[\(\[]\s*(?:'
+    r'album version\s*(?:explicit|clean)?|album ver\.?\s*(?:explicit|clean)?|'
+    r'explicit version|explicit|clean version|clean|edit|'
+    r'remaster(?:ed)?(?:\s+\d{4})?|'
+    r'deluxe(?:\s+edition)?|bonus track|'
+    r'radio edit|radio mix|radio version|'
+    r'original mix|extended mix|'
+    r'single version|live|acoustic|'
+    r'from\s+"[^"]*"|from\s+the\s+\w+'
+    r')\s*[\)\]]',
+    re.IGNORECASE,
+)
+
+
 def clean_title(title: str) -> str:
+    """Remove feat./ft. sections and common metadata tags from a title."""
     # Remove feat./ft. and everything after it (with or without parens)
     title = re.sub(r'\s*[\(\[]?feat\.?\s+[^\)\]]*[\)\]]?', '', title, flags=re.IGNORECASE)
     title = re.sub(r'\s*[\(\[]?ft\.?\s+[^\)\]]*[\)\]]?', '', title, flags=re.IGNORECASE)
+    # Remove common metadata tags in parentheses/brackets
+    title = _TAGS_PATTERN.sub('', title)
+    # Remove "with <artist>" suffixes (Spotify format)
+    title = re.sub(r'\s*[\(\[]\s*with\s+[^\)\]]+[\)\]]', '', title, flags=re.IGNORECASE)
     return title.strip()
 
 
@@ -22,7 +44,7 @@ def score_match(track: dict, result: dict) -> str:
     track_album = track["album"].lower()
 
     result_artist = result["artists"][0]["name"].lower() if result.get("artists") else ""
-    result_title = result.get("name", "").lower()
+    result_title = clean_title(result.get("name", "")).lower()
     result_album = (result.get("album") or {}).get("name", "").lower()
 
     artist_match = track_artist == result_artist
