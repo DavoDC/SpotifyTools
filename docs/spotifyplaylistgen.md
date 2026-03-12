@@ -1,6 +1,6 @@
 # Spotify Playlist Generator
 
-**Status:** Stabilization pass complete — 164 tests passing, 4 critical defects fixed
+**Status:** Stabilization pass complete — 170 tests passing, 4 critical defects fixed
 **Repo:** `C:\Users\David\GitHubRepos\SpotifyPlaylistGen` (https://github.com/DavoDC/SpotifyPlaylistGen)
 **Playlist:** https://open.spotify.com/playlist/50W1xpWQPLVDSFeeBqpjSp
 **Playlist ID:** `50W1xpWQPLVDSFeeBqpjSp`
@@ -92,6 +92,25 @@ tests/
 - ALWAYS read `docs/spotify-api-reference.md` before API work
 - Run with `scripts\run.bat` — never tell user to run python directly
 - NEVER make API calls from Claude — let run.bat handle it
+
+## TODO
+
+### Next: Live Verification
+
+- [ ] Run live via `scripts/run.bat` — verify matcher fixes resolve NONE crisis for ~4868 unmatched tracks
+- [ ] Review match report in `data/reports/` — confirm match rate improved
+
+### Low Priority: Polish
+
+- [ ] Rename "NONE" to "NOT FOUND" — clearer CLI output
+- [ ] Heartbeat — print track name BEFORE API call starts (prevents "stuck" feeling)
+- [ ] Stricter types — Pylance reports 900+ errors, add type hints gradually
+- [ ] Rename project — consider "MusicLibPlaylistSyncer" across files/imports/READMEs
+
+### Stretch
+
+- [ ] Rate limit verification — confirm exponential backoff works for 5000+ track runs
+- [ ] `--reset-exhausted` CLI flag — retry all exhausted tracks after search logic improvements
 
 ## Research Archive
 
