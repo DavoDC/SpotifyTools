@@ -12,7 +12,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 from src.spotify_interface import SpotifyInterface, AddResult, RemoveResult
-from src.matcher import clean_title, score_match
+from src.matcher import clean_title, clean_artist, score_match
 
 SCOPES = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative"
 
@@ -83,7 +83,7 @@ class RealSpotifyClient(SpotifyInterface):
         return self._sp.current_user()
 
     def search_track(self, track: dict) -> list[dict]:
-        artist = track["primary_artist"]
+        artist = clean_artist(track["primary_artist"])
         title = clean_title(track["title"])
 
         # Strict search first
