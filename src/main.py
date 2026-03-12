@@ -224,7 +224,7 @@ def run_pipeline(client: SpotifyInterface,
             label = f"{t['primary_artist']} - {t['title']}"
 
             if interactive:
-                print(f"\r  [{i:>{len(str(n))}}/{n}] {label[:55]:<55}", end="", flush=True)
+                print(f"  [{i:>{len(str(n))}}/{n}] {label[:55]:<55}", end="", flush=True)
 
             try:
                 matches = client.search_track(t)
@@ -241,7 +241,7 @@ def run_pipeline(client: SpotifyInterface,
 
             if interactive:
                 if confidence in ("exact", "high"):
-                    print(f"  {symbol}", end="\r", flush=True)
+                    print(f"  {symbol}")
                 elif confidence == "low":
                     print(f"  {symbol}  (partial: {best['artist']} - {best['name']})")
                 else:
