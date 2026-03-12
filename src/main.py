@@ -253,10 +253,12 @@ def run_pipeline(client: SpotifyInterface,
                                             spotify_uri=uri,
                                             match_confidence=confidence,
                                             source_file=t.get("source_file"))
+                    logging.info(f"[DECISION] {label} -> {confidence.upper()} (already in playlist)")
                 else:
                     # Queue for upload — mark added only after Spotify confirms
                     to_add_uris.append(uri)
                     pending_tracks[uri] = (key, label, confidence, t.get("source_file"))
+                    logging.info(f"[DECISION] {label} -> {confidence.upper()} queued for upload ({len(to_add_uris)} pending)")
                 added_count += 1
             elif confidence == "low":
                 # LOW = not added, saved for review. Check exhaustion.
@@ -273,6 +275,7 @@ def run_pipeline(client: SpotifyInterface,
                     "matched": f"{best['artist']} - {best['name']} ({best['album']})",
                     "confidence": "low",
                 })
+                logging.info(f"[DECISION] {label} -> LOW ({state}, attempt {attempts}) best={best['artist']} - {best['name']}")
                 unmatched_count += 1
             else:
                 # NONE match — check if should be exhausted
@@ -283,6 +286,7 @@ def run_pipeline(client: SpotifyInterface,
                                         state=state,
                                         display=label,
                                         source_file=t.get("source_file"))
+                logging.info(f"[DECISION] {label} -> NONE ({state}, attempt {attempts})")
                 unmatched_count += 1
 
             history_dirty = True
@@ -299,7 +303,9 @@ def run_pipeline(client: SpotifyInterface,
             if len(to_add_uris) >= FLUSH_INTERVAL:
                 if interactive:
                     print()
+                logging.info(f"[FLUSH] Uploading batch of {len(to_add_uris)} URIs to playlist")
                 result = client.add_tracks(playlist_id, to_add_uris)
+                logging.info(f"[FLUSH] Batch result: {len(result.succeeded)} succeeded, {len(result.failed)} failed")
                 for uri in result.succeeded:
                     playlist_uris.add(uri)
                     if uri in pending_tracks:
@@ -330,7 +336,9 @@ def run_pipeline(client: SpotifyInterface,
     logging.info(f"Stage 4: Final upload {len(to_add_uris)} tracks")
 
     if to_add_uris:
+        logging.info(f"[FINAL] Uploading final batch of {len(to_add_uris)} URIs")
         result = client.add_tracks(playlist_id, to_add_uris)
+        logging.info(f"[FINAL] Result: {len(result.succeeded)} succeeded, {len(result.failed)} failed")
         for uri in result.succeeded:
             playlist_uris.add(uri)
             if uri in pending_tracks:
@@ -411,7 +419,7 @@ def main():
     log_file = setup_logging()
     logging.info("=== SpotifyPlaylistGen started ===")
 
-    # Parse --simulate flag
+    # Parse CLI flags
     simulate = "--simulate" in sys.argv
 
     config = load_config(CONFIG_PATH)
