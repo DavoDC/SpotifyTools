@@ -1,5 +1,5 @@
 import pytest
-from src.matcher import score_match, clean_title, normalise
+from src.matcher import score_match, clean_title, clean_artist, normalise
 
 
 def test_clean_title_removes_feat():
@@ -89,6 +89,29 @@ def test_score_match_missing_album_does_not_crash():
     result = {"artists": [{"name": "Eminem"}], "name": "Lose Yourself", "album": {}}
     score = score_match(track, result)
     assert score in ("exact", "high", "low", "none")
+
+
+# ── clean_title: metadata tags ──────────────────────────────────────────────
+
+# ── clean_artist ─────────────────────────────────────────────────────────────
+
+def test_clean_artist_no_change():
+    assert clean_artist("Eminem") == "Eminem"
+
+def test_clean_artist_strips_feat():
+    assert clean_artist("DJ Khaled feat. Drake") == "DJ Khaled"
+
+def test_clean_artist_strips_ft():
+    assert clean_artist("Calvin Harris ft. Ellie Goulding") == "Calvin Harris"
+
+def test_clean_artist_preserves_ampersand_band_names():
+    assert clean_artist("Simon & Garfunkel") == "Simon & Garfunkel"
+
+def test_clean_artist_preserves_and_in_band_names():
+    assert clean_artist("Earth Wind and Fire") == "Earth Wind and Fire"
+
+def test_clean_artist_preserves_internal_dots():
+    assert clean_artist("B.o.B") == "B.o.B"
 
 
 # ── clean_title: metadata tags ──────────────────────────────────────────────
