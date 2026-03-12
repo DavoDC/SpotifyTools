@@ -97,8 +97,9 @@ tests/
 
 ### Next: Live Verification
 
-- [ ] Run live via `scripts/run.bat` — verify matcher fixes resolve NONE crisis for ~4868 unmatched tracks
+- [ ] Check logs from recent run — verify matcher fixes resolve NONE crisis for ~4868 unmatched tracks
 - [ ] Review match report in `data/reports/` — confirm match rate improved
+- [ ] issue: The program hangs after hitting Spotify's rate limit (HTTP 429) on a search request, causing the HTTP client library to block indefinitely while honoring an often very large Retry-After header; the ideal fix is to add explicit rate-limit handling in your code—insert short delays (e.g. 0.4–1 second) between API calls, catch 429 exceptions, read the Retry-After value if present, sleep precisely that duration plus a small buffer, and retry manually instead of relying on automatic library retries that can freeze the program for minutes or hours.
 
 ### Low Priority: Polish
 
@@ -106,6 +107,8 @@ tests/
 - [ ] Heartbeat — print track name BEFORE API call starts (prevents "stuck" feeling)
 - [ ] Stricter types — Pylance reports 900+ errors, add type hints gradually
 - [ ] Rename project — consider "MusicLibPlaylistSyncer" across files/imports/READMEs
+- [ ] Terminal logged shouldn't ovewrite exact matches, put each song on a separate line! (verify fixed in 186be2bded4b65ec1a6fe900334b96a89bb44567)
+- [ ] Log file results section is huge, format nicer for humans
 
 ### Stretch
 
