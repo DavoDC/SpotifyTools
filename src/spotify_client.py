@@ -36,9 +36,12 @@ def _retry_call(sp, method_name: str, *args, **kwargs):
     """Generic retry wrapper for any Spotify API call."""
     import requests.exceptions as req_exc
     func = getattr(sp, method_name)
+    logging.debug(f"[API] {method_name} args={args[:1] if args else ''} kwargs_keys={list(kwargs.keys())}")
     for attempt in range(MAX_RETRY):
         try:
-            return func(*args, **kwargs)
+            result = func(*args, **kwargs)
+            logging.debug(f"[API] {method_name} succeeded (attempt {attempt + 1})")
+            return result
         except spotipy.exceptions.SpotifyException as e:
             if e.http_status == 429:
                 retry_after = int(e.headers.get("Retry-After", 10)) if hasattr(e, "headers") and e.headers else 10
@@ -90,27 +93,27 @@ class RealSpotifyClient(SpotifyInterface):
 
         label = f"{raw_artist} - {raw_title}"
         if artist != raw_artist or title != raw_title:
-            logging.info(f"[SEARCH] {label} -> cleaned to: {artist} - {title}")
+            logging.debug(f"[SEARCH] {label} -> cleaned to: {artist} - {title}")
 
         # Strict search first
         query = f'artist:"{artist}" track:"{title}"'
-        logging.info(f"[SEARCH] query={query}")
+        logging.debug(f"[SEARCH] query={query}")
         results = _retry_call(self._sp, "search", q=query, type="track", limit=5)
         items = results.get("tracks", {}).get("items", [])
-        logging.info(f"[SEARCH] strict: {len(items)} results")
+        logging.debug(f"[SEARCH] strict: {len(items)} results")
 
         used_fallback = False
         if not items:
             # Broad fallback
             query = f'{artist} {title}'
-            logging.info(f"[SEARCH] fallback query={query}")
+            logging.debug(f"[SEARCH] fallback query={query}")
             results = _retry_call(self._sp, "search", q=query, type="track", limit=5)
             items = results.get("tracks", {}).get("items", [])
             used_fallback = True
-            logging.info(f"[SEARCH] fallback: {len(items)} results")
+            logging.debug(f"[SEARCH] fallback: {len(items)} results")
 
         if not items:
-            logging.warning(f"[SEARCH] ZERO results for {label} (tried strict + fallback)")
+            logging.debug(f"[SEARCH] ZERO results for {label} (tried strict + fallback)")
 
         scored = []
         for item in items:
@@ -126,16 +129,16 @@ class RealSpotifyClient(SpotifyInterface):
                 "confidence": confidence,
                 "uri": item["uri"],
             })
-            logging.info(f"[MATCH] {confidence.upper():>5} | {r_artist} - {r_title} ({r_album}) | uri={item['uri']}")
+            logging.debug(f"[MATCH] {confidence.upper():>5} | {r_artist} - {r_title} ({r_album}) | uri={item['uri']}")
 
         order = {"exact": 0, "high": 1, "low": 2, "none": 3}
         scored.sort(key=lambda x: order[x["confidence"]])
 
         best = scored[0] if scored else None
         if best:
-            logging.info(f"[RESULT] {label} -> {best['confidence'].upper()}: {best['artist']} - {best['name']} (fallback={'yes' if used_fallback else 'no'})")
+            logging.debug(f"[RESULT] {label} -> {best['confidence'].upper()}: {best['artist']} - {best['name']} (fallback={'yes' if used_fallback else 'no'})")
         else:
-            logging.info(f"[RESULT] {label} -> NO MATCH")
+            logging.debug(f"[RESULT] {label} -> NO MATCH")
 
         return scored
 
