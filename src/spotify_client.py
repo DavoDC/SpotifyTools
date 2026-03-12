@@ -83,34 +83,60 @@ class RealSpotifyClient(SpotifyInterface):
         return self._sp.current_user()
 
     def search_track(self, track: dict) -> list[dict]:
-        artist = clean_artist(track["primary_artist"])
-        title = clean_title(track["title"])
+        raw_artist = track["primary_artist"]
+        raw_title = track["title"]
+        artist = clean_artist(raw_artist)
+        title = clean_title(raw_title)
+
+        label = f"{raw_artist} - {raw_title}"
+        if artist != raw_artist or title != raw_title:
+            logging.info(f"[SEARCH] {label} -> cleaned to: {artist} - {title}")
 
         # Strict search first
         query = f'artist:"{artist}" track:"{title}"'
+        logging.info(f"[SEARCH] query={query}")
         results = _retry_call(self._sp, "search", q=query, type="track", limit=5)
         items = results.get("tracks", {}).get("items", [])
+        logging.info(f"[SEARCH] strict: {len(items)} results")
 
+        used_fallback = False
         if not items:
             # Broad fallback
             query = f'{artist} {title}'
+            logging.info(f"[SEARCH] fallback query={query}")
             results = _retry_call(self._sp, "search", q=query, type="track", limit=5)
             items = results.get("tracks", {}).get("items", [])
+            used_fallback = True
+            logging.info(f"[SEARCH] fallback: {len(items)} results")
+
+        if not items:
+            logging.warning(f"[SEARCH] ZERO results for {label} (tried strict + fallback)")
 
         scored = []
         for item in items:
             confidence = score_match(track, item)
+            r_artist = item["artists"][0]["name"] if item.get("artists") else ""
+            r_title = item.get("name", "")
+            r_album = (item.get("album") or {}).get("name", "")
             scored.append({
                 "spotify_id": item["id"],
-                "name": item["name"],
-                "artist": item["artists"][0]["name"] if item.get("artists") else "",
-                "album": (item.get("album") or {}).get("name", ""),
+                "name": r_title,
+                "artist": r_artist,
+                "album": r_album,
                 "confidence": confidence,
                 "uri": item["uri"],
             })
+            logging.info(f"[MATCH] {confidence.upper():>5} | {r_artist} - {r_title} ({r_album}) | uri={item['uri']}")
 
         order = {"exact": 0, "high": 1, "low": 2, "none": 3}
         scored.sort(key=lambda x: order[x["confidence"]])
+
+        best = scored[0] if scored else None
+        if best:
+            logging.info(f"[RESULT] {label} -> {best['confidence'].upper()}: {best['artist']} - {best['name']} (fallback={'yes' if used_fallback else 'no'})")
+        else:
+            logging.info(f"[RESULT] {label} -> NO MATCH")
+
         return scored
 
     def get_playlist_uris(self, playlist_id: str) -> set[str]:
