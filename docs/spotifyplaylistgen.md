@@ -1,4 +1,5 @@
 # Spotify Playlist Generator
+TODO: MERGE docs\session_notes_20260312.md INTO THIS FILE
 
 **Status:** Stabilization pass complete — 170 tests passing, 4 critical defects fixed
 **Repo:** `C:\Users\David\GitHubRepos\SpotifyPlaylistGen` (https://github.com/DavoDC/SpotifyPlaylistGen)
