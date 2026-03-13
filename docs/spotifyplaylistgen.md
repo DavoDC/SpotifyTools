@@ -96,13 +96,14 @@ tests/
 
 ## TODO
 
-### Next: Live Verification
+### Next
 
+- [ ] Primary Goal is to handle 5000 songs in one script run without hanging!
 - [ ] Check logs from recent run — verify matcher fixes resolve NONE crisis for ~4868 unmatched tracks
 - [ ] Review match report in `data/reports/` — confirm match rate improved
 - [ ] issue: The program hangs after hitting Spotify's rate limit (HTTP 429) on a search request, causing the HTTP client library to block indefinitely while honoring an often very large Retry-After header; the ideal fix is to add explicit rate-limit handling in your code—insert short delays (e.g. 0.4–1 second) between API calls, catch 429 exceptions, read the Retry-After value if present, sleep precisely that duration plus a small buffer, and retry manually instead of relying on automatic library retries that can freeze the program for minutes or hours.
 
-### Low Priority: Polish
+### Polish
 
 - [ ] Rename "NONE" to "NOT FOUND" — clearer CLI output
 - [ ] Heartbeat — print track name BEFORE API call starts (prevents "stuck" feeling)
@@ -110,11 +111,9 @@ tests/
 - [ ] Rename project — consider "MusicLibPlaylistSyncer" across files/imports/READMEs
 - [ ] Terminal logged shouldn't ovewrite exact matches, put each song on a separate line! (verify fixed in 186be2bded4b65ec1a6fe900334b96a89bb44567)
 - [ ] Log file results section is huge, format nicer for humans
-
-### Stretch
-
 - [ ] Rate limit verification — confirm exponential backoff works for 5000+ track runs
 - [ ] `--reset-exhausted` CLI flag — retry all exhausted tracks after search logic improvements
+- [ ] Run AudioManager before running this program so Audio Mirror is up to date
 
 ## Research Archive
 
