@@ -139,6 +139,15 @@ tests/
 ## TODO
 
 ### Next
+(Fix this formatting)
+
+Appply
+two critical fixes that  don't affect reconciliation logic, and handle API instability better. 
+
+  Fix 1 — 429 Rate Limit Hang: Remove 429 from status_forcelist so urllib3 doesn't silently block. Cap _retry_call's 429 sleep to 30s. Increase
+  SEARCH_DELAY_S from 0.1 to 0.5.
+
+Fix 2 — Unicode Bug: Add NFKD normalizatBoth preserve ion to normalise() to strip diacritics (JAŸ-Z → JAY-Z).
 
 - [ ] Primary Goal is to handle 5000 songs in one script run without hanging!
 - [ ] Fix 429 hang: remove from `status_forcelist`, cap retry sleep, increase `SEARCH_DELAY_S`
