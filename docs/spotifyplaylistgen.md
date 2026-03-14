@@ -139,16 +139,8 @@ tests/
 ## TODO
 
 ### Next
-(Fix this formatting)
-
-Appply
-two critical fixes that  don't affect reconciliation logic, and handle API instability better. 
-
-  Fix 1 — 429 Rate Limit Hang: Remove 429 from status_forcelist so urllib3 doesn't silently block. Cap _retry_call's 429 sleep to 30s. Increase
-  SEARCH_DELAY_S from 0.1 to 0.5.
-
-Fix 2 — Unicode Bug: Add NFKD normalizatBoth preserve ion to normalise() to strip diacritics (JAŸ-Z → JAY-Z).
-
+- [ ] Apply Critical Fix 1 — 429 Rate Limit Hang: Remove 429 from status_forcelist so urllib3 doesn't silently block. Cap _retry_call's 429 sleep to 30s. Increase SEARCH_DELAY_S from 0.1 to 0.5 (already partially applied)
+- [ ] Apply Critical Fix 2 — Unicode Bug: Add NFKD normalizatBoth preserve ion to normalise() to strip diacritics (JAŸ-Z → JAY-Z).
 - [ ] Primary Goal is to handle 5000 songs in one script run without hanging!
 - [ ] Fix 429 hang: remove from `status_forcelist`, cap retry sleep, increase `SEARCH_DELAY_S`
 - [ ] Fix unicode artist matching (JAŸ-Z bug): add NFKD normalization to `normalise()`
@@ -157,6 +149,7 @@ Fix 2 — Unicode Bug: Add NFKD normalizatBoth preserve ion to normalise() to st
 
 ### Polish
 
+- [ ] Optimize logs for Claude token usage, reduce size
 - [ ] Rename "NONE" to "NOT FOUND" — clearer CLI output
 - [ ] Heartbeat — print track name BEFORE API call starts (prevents "stuck" feeling)
 - [ ] Stricter types — Pylance reports 900+ errors, add type hints gradually
