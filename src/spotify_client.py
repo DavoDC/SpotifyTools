@@ -78,7 +78,7 @@ class RealSpotifyClient(SpotifyInterface):
             auth_manager=auth,
             requests_timeout=15,
             retries=5,
-            status_forcelist=[429, 500, 502, 503, 504],
+            status_forcelist=[500, 502, 503, 504],
             backoff_factor=1,
         )
 
