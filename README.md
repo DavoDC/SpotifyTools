@@ -13,10 +13,10 @@ Python CLI tool that syncs your offline music library (AudioMirror XML) to a Spo
 3. Searches Spotify for unmatched tracks (artist + title + album)
 4. Adds EXACT and HIGH confidence matches to your playlist automatically
 5. LOW confidence matches are saved for manual review (not added)
-6. Saves decision history — re-runs only process new/changed tracks
+6. Saves decision history - re-runs only process new/changed tracks
 7. Removes tracks from playlist if they're deleted from your library
 
-The tool is **deterministic and idempotent** — running it multiple times always converges to the same playlist state.
+The tool is **deterministic and idempotent** - running it multiple times always converges to the same playlist state.
 
 ---
 
@@ -112,10 +112,10 @@ SpotifyPlaylistGen/
 
 | State | Meaning |
 |-------|---------|
-| `added` | Matched and in playlist — skipped on re-run |
-| `unmatched` | No match found — retried on re-run |
-| `exhausted` | Failed 5+ times — no longer retried |
-| `custom` | Manually marked as not on Spotify — always skipped |
+| `added` | Matched and in playlist - skipped on re-run |
+| `unmatched` | No match found - retried on re-run |
+| `exhausted` | Failed 5+ times - no longer retried |
+| `custom` | Manually marked as not on Spotify - always skipped |
 
 ---
 
@@ -124,3 +124,9 @@ SpotifyPlaylistGen/
 ```bash
 python -m pytest tests/ -v
 ```
+
+---
+
+## Development
+
+**Started:** March 2026 · **Status:** Actively developed · **Tests:** 88
