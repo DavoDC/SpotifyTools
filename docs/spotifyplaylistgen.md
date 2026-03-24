@@ -158,6 +158,7 @@ tests/
 - [ ] Log file results section is huge, format nicer for humans
 - [ ] `--reset-exhausted` CLI flag — retry all exhausted tracks after search logic improvements
 - [ ] Run AudioManager before running this program so Audio Mirror is up to date
+- [ ] diagnose.py = integarte into main program as one liner in terminal oputput, runnign diagnostic checks!
 
 ## Research Archive
 
