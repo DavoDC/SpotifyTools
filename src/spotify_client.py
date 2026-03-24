@@ -21,6 +21,8 @@ CACHE_PATH = os.path.join(BASE_DIR, "data", ".cache")
 
 MAX_RETRY = 3
 BATCH_SIZE = 100
+SEARCH_DELAY_S = 0.5       # delay between searches to avoid 429s
+MAX_RETRY_AFTER_S = 30     # cap on Retry-After sleep (don't trust huge values)
 
 
 def _get_track_obj(item: dict) -> dict | None:
@@ -36,6 +38,7 @@ def _retry_call(sp, method_name: str, *args, **kwargs):
     """Generic retry wrapper for any Spotify API call."""
     import requests.exceptions as req_exc
     func = getattr(sp, method_name)
+    logging.info(f"[API] → {method_name}")
     logging.debug(f"[API] {method_name} args={args[:1] if args else ''} kwargs_keys={list(kwargs.keys())}")
     for attempt in range(MAX_RETRY):
         try:
@@ -45,8 +48,8 @@ def _retry_call(sp, method_name: str, *args, **kwargs):
         except spotipy.exceptions.SpotifyException as e:
             if e.http_status == 429:
                 retry_after = int(e.headers.get("Retry-After", 10)) if hasattr(e, "headers") and e.headers else 10
-                wait = retry_after + 1
-                logging.warning(f"Rate limited on {method_name} (429), sleeping {wait}s")
+                wait = min(retry_after + 1, MAX_RETRY_AFTER_S)
+                logging.warning(f"Rate limited on {method_name} (429), sleeping {wait}s (Retry-After={retry_after}s, capped at {MAX_RETRY_AFTER_S}s)")
                 time.sleep(wait)
             elif e.http_status in (500, 502, 503, 504):
                 wait = 2 ** attempt
@@ -74,6 +77,9 @@ class RealSpotifyClient(SpotifyInterface):
             cache_path=CACHE_PATH,
             open_browser=True,
         )
+        # 429 is intentionally excluded from status_forcelist so urllib3 never
+        # auto-retries on rate limits. _retry_call handles 429 with a capped
+        # sleep, preventing the silent hang caused by huge Retry-After values.
         self._sp = spotipy.Spotify(
             auth_manager=auth,
             requests_timeout=15,
@@ -102,6 +108,7 @@ class RealSpotifyClient(SpotifyInterface):
         items = results.get("tracks", {}).get("items", [])
         logging.debug(f"[SEARCH] strict: {len(items)} results")
 
+        time.sleep(SEARCH_DELAY_S)
         used_fallback = False
         if not items:
             # Broad fallback
@@ -111,6 +118,7 @@ class RealSpotifyClient(SpotifyInterface):
             items = results.get("tracks", {}).get("items", [])
             used_fallback = True
             logging.debug(f"[SEARCH] fallback: {len(items)} results")
+            time.sleep(SEARCH_DELAY_S)
 
         if not items:
             logging.debug(f"[SEARCH] ZERO results for {label} (tried strict + fallback)")
