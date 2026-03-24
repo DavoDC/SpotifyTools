@@ -1,5 +1,9 @@
 # SpotifyPlaylistGen
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/G2G31WKOCN)
+
+
+
 Python CLI tool that syncs your offline music library (AudioMirror XML) to a Spotify playlist.
 
 **Use case:** Offline music library at home → listen to the same tracks on Spotify at work.
