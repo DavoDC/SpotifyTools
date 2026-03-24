@@ -159,3 +159,39 @@ def test_score_match_cleans_local_album_version():
     track = {"primary_artist": "Bone Thugs-N-Harmony", "title": "Never Forget Me (Album Version Explicit)", "album": ""}
     result = {"artists": [{"name": "Bone Thugs-N-Harmony"}], "name": "Never Forget Me", "album": {"name": ""}}
     assert score_match(track, result) in ("exact", "high")
+
+
+# ── normalise: Unicode diacritics ───────────────────────────────────────────
+
+def test_normalise_strips_diacritics_umlaut():
+    assert normalise("café") == "cafe"
+
+def test_normalise_strips_diacritics_y_diaeresis():
+    # Ÿ (U+0178) → y — the JAY-Z / JAŸ-Z case; hyphen stripped as punctuation → "jayz"
+    assert normalise("JAŸ-Z") == "jayz"
+
+def test_normalise_diacritics_match():
+    assert normalise("JAY-Z") == normalise("JAŸ-Z")
+
+
+# ── score_match: diacritic artist names ─────────────────────────────────────
+
+def test_score_match_jayz_diacritic_artist():
+    """Spotify returns JAŸ-Z (U+0178) instead of JAY-Z — should still match HIGH or EXACT."""
+    track = {"primary_artist": "JAY-Z", "title": "Empire State of Mind", "album": "The Blueprint 3"}
+    result = {
+        "artists": [{"name": "JAŸ-Z"}],
+        "name": "Empire State of Mind",
+        "album": {"name": "The Blueprint 3"},
+    }
+    assert score_match(track, result) in ("exact", "high")
+
+def test_score_match_diacritic_title():
+    """Title with diacritic (café) matches plain ASCII (cafe) after normalisation."""
+    track = {"primary_artist": "Artist", "title": "cafe racer", "album": ""}
+    result = {
+        "artists": [{"name": "Artist"}],
+        "name": "café racer",
+        "album": {"name": ""},
+    }
+    assert score_match(track, result) in ("exact", "high")

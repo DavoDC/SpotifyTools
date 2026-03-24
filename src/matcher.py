@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 
 # Common music metadata tags that appear in parentheses/brackets.
@@ -43,6 +44,9 @@ def clean_artist(artist: str) -> str:
 
 
 def normalise(s: str) -> str:
+    # Strip diacritics first (e.g. JAŸ-Z → JAY-Z, café → cafe)
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.lower()
     s = re.sub(r'\bthe\b|\ba\b|\ban\b', '', s)
     s = re.sub(r'[^\w\s]', '', s)
