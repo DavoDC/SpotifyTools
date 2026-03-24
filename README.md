@@ -133,4 +133,4 @@ python -m pytest tests/ -v
 
 ## Development
 
-**Started:** March 2026 · **Status:** Actively developed · **Tests:** 88
+**Developed:** March 2026 · **Status:** Actively developed · **Tests:** 88
