@@ -19,7 +19,7 @@ SCOPES = "playlist-modify-public playlist-modify-private playlist-read-private p
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_PATH = os.path.join(BASE_DIR, "data", ".cache")
 
-MAX_RETRY = 3
+MAX_RETRY = 5
 BATCH_SIZE = 100
 SEARCH_DELAY_S = 0.5       # delay between searches to avoid 429s
 MAX_RETRY_AFTER_S = 30     # cap on Retry-After sleep (don't trust huge values)
@@ -77,15 +77,15 @@ class RealSpotifyClient(SpotifyInterface):
             cache_path=CACHE_PATH,
             open_browser=True,
         )
-        # 429 is intentionally excluded from status_forcelist so urllib3 never
-        # auto-retries on rate limits. _retry_call handles 429 with a capped
-        # sleep, preventing the silent hang caused by huge Retry-After values.
+        # retries=0 disables urllib3's internal retry/sleep logic entirely.
+        # urllib3 retries 429 on ANY response with a Retry-After header (via
+        # RETRY_AFTER_STATUS_CODES), sleeping for the UNCAPPED Retry-After
+        # value before our _retry_call ever runs — causing the hang at ~500 tracks.
+        # _retry_call handles all retries (429, 5xx, timeout) with a 30s cap.
         self._sp = spotipy.Spotify(
             auth_manager=auth,
             requests_timeout=15,
-            retries=5,
-            status_forcelist=[500, 502, 503, 504],
-            backoff_factor=1,
+            retries=0,
         )
 
     def current_user(self) -> dict:
