@@ -56,3 +56,9 @@ scripts/run.bat
 - First page may return `items=[]` with `total>0` — must paginate via `next` URL
 - Response uses `item["item"]` (current) or `item["track"]` (old) — check both
 - DELETE dedup: `{"items": [{"uri": "..."}], "snapshot_id": "..."}`
+
+## Next Session - Action Required
+
+Hit Spotify API rate limit on 2026-03-28. Review log before continuing:
+
+`C:\Users\David\GitHubRepos\SpotifyPlaylistGen\data\logs\terminal_28_03_2026_2.txt`
