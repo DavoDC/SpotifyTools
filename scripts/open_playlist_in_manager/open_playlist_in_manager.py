@@ -20,14 +20,31 @@ from spotipy.oauth2 import SpotifyOAuth
 
 import json
 
-logging.basicConfig(level=logging.DEBUG, format='%(message)s')
-logger = logging.getLogger(__name__)
-
 SCOPES = "playlist-read-private playlist-read-collaborative"
 CACHE_PATH = os.path.join(REPO_ROOT, "data", ".cache")
 CONFIG_PATH = os.path.join(REPO_ROOT, "config", "config.json")
 MANAGER_URL = "http://localhost:6595/search"
 PLAYLIST_CACHE_DIR = SCRIPT_DIR
+LOG_FILE = os.path.join(PLAYLIST_CACHE_DIR, "open_playlist.log")
+
+def setup_logging():
+    """Setup logging: file=DEBUG, console=INFO."""
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    file_handler = logging.FileHandler(LOG_FILE, mode='w')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter('%(message)s'))
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter('%(message)s'))
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logging.getLogger(__name__)
+
+logger = setup_logging()
 
 
 def load_config():
@@ -109,6 +126,7 @@ def main():
         print(__doc__)
         sys.exit(1)
 
+    logger.info(f"Log file: {LOG_FILE}")
     playlist_id = sys.argv[1]
 
     tracks = load_cache(playlist_id)
