@@ -1,0 +1,10 @@
+
+Searches are like this
+http://localhost:6595/search?term=Fame%20Or%20Juliet%20No%20Tears
+instead of using %20 spaces, use +
+Using plus wouild be cleaner! more human readable URL
+e.g. http://localhost:6595/search?term=elvis+presley+burning+love
+
+this program is fully standalone!!! likely duplicates existing code with SPG 
+
+
