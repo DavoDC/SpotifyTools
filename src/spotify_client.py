@@ -38,7 +38,7 @@ def _retry_call(sp, method_name: str, *args, **kwargs):
     """Generic retry wrapper for any Spotify API call."""
     import requests.exceptions as req_exc
     func = getattr(sp, method_name)
-    logging.info(f"[API] → {method_name}")
+    logging.info(f"[API] -> {method_name}")
     logging.debug(f"[API] {method_name} args={args[:1] if args else ''} kwargs_keys={list(kwargs.keys())}")
     for attempt in range(MAX_RETRY):
         try:
@@ -254,3 +254,33 @@ class RealSpotifyClient(SpotifyInterface):
                 break
 
         return dupes
+
+    def get_playlist_tracks(self, playlist_id: str) -> list[tuple[str, str]]:
+        """Return (artist, title) for every track in a playlist."""
+        playlist = _retry_call(self._sp, "playlist", playlist_id)
+        page = playlist.get("items") or playlist.get("tracks")
+        if page is None:
+            logging.warning(f"Playlist {playlist_id}: no items/tracks key in response")
+            return []
+
+        tracks = []
+        while page:
+            for item in (page.get("items") or []):
+                track = _get_track_obj(item) if item else None
+                if not track or not track.get("id"):
+                    continue
+                artists = track.get("artists", [])
+                artist = " & ".join(a["name"] for a in artists) if artists else "Unknown"
+                title = track.get("name", "Unknown")
+                tracks.append((artist, title))
+            if page.get("next"):
+                try:
+                    page = self._sp.next(page)
+                except Exception as e:
+                    logging.warning(f"Playlist pagination stopped: {e}")
+                    break
+            else:
+                break
+
+        logging.info(f"Read {len(tracks)} tracks from playlist {playlist_id}")
+        return tracks
