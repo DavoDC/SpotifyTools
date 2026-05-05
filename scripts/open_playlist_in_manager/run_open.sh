@@ -1,1 +1,0 @@
-python open_playlist_in_manager.py 5KdoBnznZE4q1p7ODE2871
