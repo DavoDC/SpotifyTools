@@ -2,3 +2,6 @@ config/config.json
 __pycache__/
 *.pyc
 data/.cache
+data/run.lock
+*.log
+/data/playlist_cache
