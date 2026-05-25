@@ -72,8 +72,15 @@ def _save_cache(playlist_id: str, tracks: list):
     logger.info(f"Cached {len(tracks)} tracks to {path}")
 
 
+def _clean_for_search(text: str) -> str:
+    """Strip non-word characters so the music manager receives plain words only."""
+    stripped = re.sub(r'[^\w\s]', ' ', text)
+    return re.sub(r'\s+', ' ', stripped).strip()
+
+
 def _open_in_manager(artist: str, title: str):
-    url = f"{MANAGER_URL}?term={quote_plus(f'{artist} {title}')}"
+    query = _clean_for_search(f"{artist} {title}")
+    url = f"{MANAGER_URL}?term={quote_plus(query)}"
     webbrowser.open(url)
 
 
@@ -91,7 +98,7 @@ def _open_interactively(tracks: list[tuple[str, str]]) -> None:
 
     for i, (artist, title) in enumerate(tracks, 1):
         label = f"{artist} - {title}"
-        logger.info(f"[{i}/{n}] Opening: {label}")
+        logger.debug(f"[{i}/{n}] Opening: {label}")
         print(f"[{i}/{n}] {label}")
         _open_in_manager(artist, title)
 
@@ -113,7 +120,7 @@ def _open_interactively(tracks: list[tuple[str, str]]) -> None:
 
 
 def main():
-    raw = input("\nEnter Spotify playlist ID or URL: ").strip()
+    raw = input("\nEnter Spotify playlist URL: ").strip()
     if not raw:
         print("No input provided.")
         sys.exit(1)

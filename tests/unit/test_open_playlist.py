@@ -67,20 +67,28 @@ def test_single_track_no_next_prompt():
 # ── _clean_for_search ────────────────────────────────────────────────────────
 
 def test_clean_for_search_strips_ampersand():
-    pass
+    assert _clean_for_search("TJ Hickey & Nate Good") == "TJ Hickey Nate Good"
 
 
 def test_clean_for_search_strips_hyphen():
-    pass
+    assert _clean_for_search("Ne-Yo") == "Ne Yo"
 
 
 def test_clean_for_search_strips_period():
-    pass
+    assert _clean_for_search("Ms. Tundra") == "Ms Tundra"
 
 
 def test_clean_for_search_collapses_whitespace():
-    pass
+    assert _clean_for_search("a  &  b") == "a b"
 
 
 def test_open_in_manager_url_has_no_percent_encoded_symbols():
-    pass
+    """URL built for artist with & must not contain %26 or other %XX symbols."""
+    captured = []
+    with patch("src.open_playlist.webbrowser.open", side_effect=lambda u: captured.append(u)):
+        from src.open_playlist import _open_in_manager
+        _open_in_manager("TJ Hickey & Nate Good", "sea side nights")
+    url = captured[0]
+    assert "%26" not in url
+    assert "%27" not in url
+    assert "TJ" in url and "Hickey" in url and "Nate" in url
