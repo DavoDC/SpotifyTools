@@ -72,6 +72,9 @@ def _save_cache(playlist_id: str, tracks: list):
     logger.info(f"Cached {len(tracks)} tracks to {path}")
 
 
+_FEAT_RE = re.compile(r'\s*[\(\[]?(?:feat|ft)\.?\s+.*', re.IGNORECASE)
+
+
 def _clean_for_search(text: str) -> str:
     """Strip non-word characters so the music manager receives plain words only."""
     stripped = re.sub(r'[^\w\s]', ' ', text)
@@ -79,7 +82,9 @@ def _clean_for_search(text: str) -> str:
 
 
 def _open_in_manager(artist: str, title: str):
-    query = _clean_for_search(f"{artist} {title}")
+    primary = artist.split(' & ')[0].split(';')[0].strip()
+    core_title = _FEAT_RE.sub('', title).strip()
+    query = _clean_for_search(f"{primary} {core_title}")
     url = f"{MANAGER_URL}?term={quote_plus(query)}"
     webbrowser.open(url)
 

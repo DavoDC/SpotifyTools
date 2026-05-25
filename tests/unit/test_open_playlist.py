@@ -97,17 +97,37 @@ def test_open_in_manager_url_has_no_percent_encoded_symbols():
 
 # ── _open_in_manager primary artist + feat. stripping ────────────────────────
 
+def _capture_url(artist, title):
+    captured = []
+    with patch("src.open_playlist.webbrowser.open", side_effect=lambda u: captured.append(u)):
+        from src.open_playlist import _open_in_manager
+        _open_in_manager(artist, title)
+    return captured[0]
+
+
 def test_open_in_manager_uses_primary_artist_only():
-    pass
+    url = _capture_url("KYLE & Joshua Golden", "Some Song")
+    assert "KYLE" in url
+    assert "Joshua" not in url
+    assert "Golden" not in url
 
 
 def test_open_in_manager_strips_feat_parens():
-    pass
+    url = _capture_url("Artist", "But Cha (feat. Josh Golden)")
+    assert "But" in url and "Cha" in url
+    assert "feat" not in url.lower()
+    assert "Josh" not in url
+    assert "Golden" not in url
 
 
 def test_open_in_manager_kyle_example():
-    pass
+    """Exact user-reported failure case -> expected passing URL."""
+    url = _capture_url("KYLE & Joshua Golden", "But Cha (feat. Josh Golden)")
+    term = url.split("term=")[1]
+    assert term == "KYLE+But+Cha"
 
 
 def test_open_in_manager_single_artist_unchanged():
-    pass
+    """Single artist with no feat: only symbol stripping applies."""
+    url = _capture_url("Ne-Yo", "Ms. Tundra")
+    assert "Ne" in url and "Yo" in url and "Ms" in url and "Tundra" in url
