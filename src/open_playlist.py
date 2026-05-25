@@ -90,6 +90,7 @@ def _open_in_manager(artist: str, title: str):
 
 
 def _open_interactively(tracks: list[tuple[str, str]]) -> None:
+    tracks = sorted(tracks, key=lambda t: (t[0].split(' & ')[0].strip().lower(), t[1].lower()))
     n = len(tracks)
     if n == 0:
         print("No tracks to open.")
@@ -109,7 +110,7 @@ def _open_interactively(tracks: list[tuple[str, str]]) -> None:
 
         if i < n:
             next_artist, next_title = tracks[i]
-            prompt = f"  Next: {next_artist} - {next_title} | Press Enter to open (or 'q' to quit): "
+            prompt = f"Next: {next_artist} - {next_title} | Press Enter to open (or 'q' to quit): "
             try:
                 resp = input(prompt).strip().lower()
             except (KeyboardInterrupt, EOFError):

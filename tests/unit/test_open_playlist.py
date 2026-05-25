@@ -64,6 +64,22 @@ def test_single_track_no_next_prompt():
     assert mock_input.call_count == 1  # only the "Ready to start" prompt
 
 
+def test_open_interactively_sorts_by_primary_artist():
+    """Tracks open in primary-artist alphabetical order regardless of input order."""
+    unsorted = [
+        ("Zara Larsson", "Last"),
+        ("Akon", "First"),
+        ("Mura Masa", "Second"),
+    ]
+    opened = []
+    with patch("builtins.input", side_effect=["", "", ""]), \
+         patch("src.open_playlist._open_in_manager", side_effect=lambda a, t: opened.append((a, t))):
+        _open_interactively(unsorted)
+    assert opened[0] == ("Akon", "First")
+    assert opened[1] == ("Mura Masa", "Second")
+    assert opened[2] == ("Zara Larsson", "Last")
+
+
 # ── _clean_for_search ────────────────────────────────────────────────────────
 
 def test_clean_for_search_strips_ampersand():
