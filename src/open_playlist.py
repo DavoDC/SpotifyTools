@@ -121,7 +121,7 @@ def _open_interactively(tracks: list[tuple[str, str]]) -> None:
                 return
 
     print(f"\nAll {n} tracks opened.")
-    logger.info(f"Done. Opened {n} tracks.")
+    logger.debug(f"Done. Opened {n} tracks.")
 
 
 def main():
@@ -152,7 +152,7 @@ def main():
 
     logger.info(f"Opening {len(tracks)} tracks in manager...")
     _open_interactively(tracks)
-    logger.info("Done. Check your browser.")
+    logger.debug("Done. Check your browser.")
 
 
 if __name__ == "__main__":
