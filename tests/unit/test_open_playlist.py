@@ -12,20 +12,53 @@ TRACKS = [
 
 
 def test_opens_all_tracks_with_enter(capsys):
-    pass
+    """All Enter presses: all three tracks opened."""
+    # start prompt + 2 inter-track prompts (no prompt after last track)
+    with patch("builtins.input", side_effect=["", "", ""]), \
+         patch("src.open_playlist._open_in_manager") as mock_open:
+        _open_interactively(TRACKS)
+    assert mock_open.call_count == 3
+    mock_open.assert_any_call("Eminem", "My Name Is")
+    mock_open.assert_any_call("JAY-Z", "Encore")
+    mock_open.assert_any_call("Mura Masa", "bbycakes")
+    out = capsys.readouterr().out
+    assert "All 3 tracks opened" in out
 
 
 def test_quit_mid_way(capsys):
-    pass
+    """'q' after second track: only 2 tracks opened."""
+    # start prompt -> '' after track 1 -> 'q' after track 2
+    with patch("builtins.input", side_effect=["", "", "q"]), \
+         patch("src.open_playlist._open_in_manager") as mock_open:
+        _open_interactively(TRACKS)
+    assert mock_open.call_count == 2
+    out = capsys.readouterr().out
+    assert "Stopped" in out
 
 
 def test_ctrl_c_stops_gracefully(capsys):
-    pass
+    """KeyboardInterrupt after first open: stops cleanly after 1 track."""
+    with patch("builtins.input", side_effect=["", KeyboardInterrupt]), \
+         patch("src.open_playlist._open_in_manager") as mock_open:
+        _open_interactively(TRACKS)
+    assert mock_open.call_count == 1
+    out = capsys.readouterr().out
+    assert "Stopped" in out
 
 
 def test_empty_list_prints_message(capsys):
-    pass
+    """Empty track list: no opens, prints informative message."""
+    with patch("src.open_playlist._open_in_manager") as mock_open:
+        _open_interactively([])
+    assert mock_open.call_count == 0
+    out = capsys.readouterr().out
+    assert "No tracks" in out
 
 
 def test_single_track_no_next_prompt():
-    pass
+    """Single track: only the start prompt fires, no inter-track prompt."""
+    with patch("builtins.input", side_effect=[""]) as mock_input, \
+         patch("src.open_playlist._open_in_manager") as mock_open:
+        _open_interactively([("Eminem", "My Name Is")])
+    assert mock_open.call_count == 1
+    assert mock_input.call_count == 1  # only the "Ready to start" prompt

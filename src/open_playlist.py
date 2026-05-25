@@ -77,6 +77,41 @@ def _open_in_manager(artist: str, title: str):
     webbrowser.open(url)
 
 
+def _open_interactively(tracks: list[tuple[str, str]]) -> None:
+    n = len(tracks)
+    if n == 0:
+        print("No tracks to open.")
+        return
+
+    try:
+        input(f"\nReady to open {n} tracks. Press Enter to start (or Ctrl+C to cancel)...")
+    except (KeyboardInterrupt, EOFError):
+        print("\nCancelled.")
+        return
+
+    for i, (artist, title) in enumerate(tracks, 1):
+        label = f"{artist} - {title}"
+        logger.info(f"[{i}/{n}] Opening: {label}")
+        print(f"[{i}/{n}] {label}")
+        _open_in_manager(artist, title)
+
+        if i < n:
+            next_artist, next_title = tracks[i]
+            prompt = f"  Next: {next_artist} - {next_title} | Press Enter to open (or 'q' to quit): "
+            try:
+                resp = input(prompt).strip().lower()
+            except (KeyboardInterrupt, EOFError):
+                print(f"\nStopped. Opened {i}/{n} tracks.")
+                return
+            if resp == "q":
+                logger.info(f"User quit after {i}/{n} tracks.")
+                print(f"Stopped. Opened {i}/{n} tracks.")
+                return
+
+    print(f"\nAll {n} tracks opened.")
+    logger.info(f"Done. Opened {n} tracks.")
+
+
 def main():
     raw = input("\nEnter Spotify playlist ID or URL: ").strip()
     if not raw:
@@ -104,10 +139,7 @@ def main():
         _save_cache(playlist_id, tracks)
 
     logger.info(f"Opening {len(tracks)} tracks in manager...")
-    for artist, title in tracks:
-        logger.info(f"  {artist} - {title}")
-        _open_in_manager(artist, title)
-
+    _open_interactively(tracks)
     logger.info("Done. Check your browser.")
 
 
