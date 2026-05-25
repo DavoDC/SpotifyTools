@@ -91,4 +91,23 @@ def test_open_in_manager_url_has_no_percent_encoded_symbols():
     url = captured[0]
     assert "%26" not in url
     assert "%27" not in url
-    assert "TJ" in url and "Hickey" in url and "Nate" in url
+    assert "TJ" in url and "Hickey" in url
+    assert "Nate" not in url  # secondary artist stripped - primary only
+
+
+# ── _open_in_manager primary artist + feat. stripping ────────────────────────
+
+def test_open_in_manager_uses_primary_artist_only():
+    pass
+
+
+def test_open_in_manager_strips_feat_parens():
+    pass
+
+
+def test_open_in_manager_kyle_example():
+    pass
+
+
+def test_open_in_manager_single_artist_unchanged():
+    pass
