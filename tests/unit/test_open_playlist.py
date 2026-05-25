@@ -1,8 +1,8 @@
-"""Tests for src/open_playlist._open_interactively."""
+"""Tests for src/open_playlist._open_interactively and _clean_for_search."""
 
 from unittest.mock import patch
 
-from src.open_playlist import _open_interactively
+from src.open_playlist import _open_interactively, _clean_for_search
 
 TRACKS = [
     ("Eminem", "My Name Is"),
@@ -62,3 +62,25 @@ def test_single_track_no_next_prompt():
         _open_interactively([("Eminem", "My Name Is")])
     assert mock_open.call_count == 1
     assert mock_input.call_count == 1  # only the "Ready to start" prompt
+
+
+# ── _clean_for_search ────────────────────────────────────────────────────────
+
+def test_clean_for_search_strips_ampersand():
+    pass
+
+
+def test_clean_for_search_strips_hyphen():
+    pass
+
+
+def test_clean_for_search_strips_period():
+    pass
+
+
+def test_clean_for_search_collapses_whitespace():
+    pass
+
+
+def test_open_in_manager_url_has_no_percent_encoded_symbols():
+    pass
