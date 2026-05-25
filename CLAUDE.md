@@ -57,6 +57,13 @@ scripts/run.bat
 - Response uses `item["item"]` (current) or `item["track"]` (old) — check both
 - DELETE dedup: `{"items": [{"uri": "..."}], "snapshot_id": "..."}`
 
+## open_playlist.py Patterns
+
+- `get_playlist_tracks` joins all Spotify artists with ` & `. For search URL building: split on ` & `, take `[0]` (primary). For display: use full joined string.
+- Spotify official titles include `(feat. X)` in the title string itself - must be stripped with `_FEAT_RE` before URL encoding, separately from artist extraction.
+- Sort tracks by primary artist before sequential opening (`_open_interactively` does this) - groups same-artist tracks for efficient lookup workflow.
+- `logger.info` + `print` in same code block = double output on terminal (StreamHandler at INFO level). Use `logger.debug` for file-only, `print` for terminal-only.
+
 ## Next Session - Action Required
 
 Hit Spotify API rate limit on 2026-03-28. Review log before continuing:
