@@ -36,3 +36,44 @@ def test_track_key_format():
 def test_track_key_special_chars():
     track = {"primary_artist": "Beyoncé", "title": "Love On Top"}
     assert track_key(track) == "Beyoncé|Love On Top"
+
+
+# ── reset_exhausted_tracks ────────────────────────────────────────────────────
+
+def test_reset_exhausted_resets_state_and_attempts():
+    from src.main import reset_exhausted_tracks
+    history = {"version": 2, "tracks": {
+        "Artist|Song": {"state": "exhausted", "search_attempts": 5, "display": "Artist - Song"},
+    }}
+    count = reset_exhausted_tracks(history)
+    assert count == 1
+    assert history["tracks"]["Artist|Song"]["state"] == "unmatched"
+    assert history["tracks"]["Artist|Song"]["search_attempts"] == 0
+
+def test_reset_exhausted_leaves_other_states_unchanged():
+    from src.main import reset_exhausted_tracks
+    history = {"version": 2, "tracks": {
+        "A|Song1": {"state": "added", "search_attempts": 1, "display": "..."},
+        "A|Song2": {"state": "unmatched", "search_attempts": 2, "display": "..."},
+        "A|Song3": {"state": "custom", "search_attempts": 0, "display": "..."},
+    }}
+    count = reset_exhausted_tracks(history)
+    assert count == 0
+    assert history["tracks"]["A|Song1"]["state"] == "added"
+    assert history["tracks"]["A|Song2"]["state"] == "unmatched"
+    assert history["tracks"]["A|Song3"]["state"] == "custom"
+
+def test_reset_exhausted_returns_correct_count():
+    from src.main import reset_exhausted_tracks
+    history = {"version": 2, "tracks": {
+        "A|1": {"state": "exhausted", "search_attempts": 5, "display": "..."},
+        "A|2": {"state": "exhausted", "search_attempts": 6, "display": "..."},
+        "A|3": {"state": "added", "search_attempts": 1, "display": "..."},
+    }}
+    count = reset_exhausted_tracks(history)
+    assert count == 2
+
+def test_reset_exhausted_empty_history():
+    from src.main import reset_exhausted_tracks
+    history = {"version": 2, "tracks": {}}
+    assert reset_exhausted_tracks(history) == 0
