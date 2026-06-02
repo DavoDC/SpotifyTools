@@ -72,6 +72,8 @@ On first run, a browser window will open for Spotify login. After that, auth is 
 
 Use `--simulate` to run against mock data without touching the real API.
 
+Use `--reset-exhausted` to retry tracks that gave up after 5 failed searches (e.g. after improving search logic).
+
 ---
 
 ## Project structure

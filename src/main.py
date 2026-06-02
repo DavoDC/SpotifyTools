@@ -472,6 +472,7 @@ def main():
         except Exception as e:
             logging.error(f"Spotify auth failed: {e}")
             print(f"  ERROR: Could not connect to Spotify: {e}")
+            print(f"  Tip: Run 'python src/diagnose.py' for detailed auth diagnostics.")
             _wait_for_exit()
             return
 
