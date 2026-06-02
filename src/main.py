@@ -217,7 +217,7 @@ def run_pipeline(client: SpotifyInterface,
         print(f"\n[Stage 3/4] Searching Spotify for {n} tracks...")
         logging.info(f"Stage 3: Searching {n} tracks")
 
-        CONF_SYMBOL = {"exact": "+ EXACT", "high": "+ HIGH ", "low": "- LOW  ", "none": "- NONE "}
+        CONF_SYMBOL = {"exact": "+ EXACT", "high": "+ HIGH ", "low": "- LOW  ", "none": "- NOT FOUND"}
 
         for i, t in enumerate(plan.to_search, 1):
             key = track_key(t)
@@ -282,7 +282,7 @@ def run_pipeline(client: SpotifyInterface,
                 logging.debug(f"[DECISION] {label} -> LOW ({state}, attempt {attempts}) best={best['artist']} - {best['name']}")
                 unmatched_count += 1
             else:
-                # NONE match — check if should be exhausted
+                # no match found - check if should be exhausted
                 existing = history.get("tracks", {}).get(key, {})
                 attempts = existing.get("search_attempts", 0) + 1
                 state = "exhausted" if attempts >= MAX_SEARCH_ATTEMPTS else UNMATCHED
@@ -290,7 +290,7 @@ def run_pipeline(client: SpotifyInterface,
                                         state=state,
                                         display=label,
                                         source_file=t.get("source_file"))
-                logging.debug(f"[DECISION] {label} -> NONE ({state}, attempt {attempts})")
+                logging.debug(f"[DECISION] {label} -> NOT FOUND ({state}, attempt {attempts})")
                 unmatched_count += 1
 
             history_dirty = True
