@@ -414,6 +414,22 @@ def run_pipeline(client: SpotifyInterface,
     }
 
 
+def reset_exhausted_tracks(history: dict) -> int:
+    """Reset all exhausted tracks to unmatched so they get retried next run.
+
+    Returns the number of tracks reset.
+    """
+    now = datetime.now().isoformat()
+    count = 0
+    for entry in history.get("tracks", {}).values():
+        if entry.get("state") == "exhausted":
+            entry["state"] = "unmatched"
+            entry["search_attempts"] = 0
+            entry["last_updated"] = now
+            count += 1
+    return count
+
+
 def main():
     # Force UTF-8 output on Windows (cp1252 can't handle music metadata)
     if sys.stdout.encoding != "utf-8":
@@ -425,6 +441,7 @@ def main():
 
     # Parse CLI flags
     simulate = "--simulate" in sys.argv
+    reset_exhausted = "--reset-exhausted" in sys.argv
 
     config = load_config(CONFIG_PATH)
     if not config:
@@ -459,6 +476,15 @@ def main():
             return
 
     history_store = HistoryStore(HISTORY_PATH)
+
+    if reset_exhausted:
+        history = history_store.load()
+        n = reset_exhausted_tracks(history)
+        if n > 0:
+            history_store.save(history)
+            print(f"\n  Reset {n} exhausted track(s) to unmatched - they will be retried this run.")
+        else:
+            print("\n  No exhausted tracks to reset.")
 
     try:
         with LockFile(LOCK_PATH):
