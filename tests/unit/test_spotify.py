@@ -160,6 +160,30 @@ def test_simulator_current_user():
     assert user["id"] == "testuser123"
 
 
+def test_simulator_error_scenario_rate_limit():
+    fixture = {"error_scenarios": {"Busy|Track": "rate_limit"}}
+    client = SimulatedSpotifyClient(fixture_data=fixture)
+    with pytest.raises(RuntimeError, match="Simulated rate limit"):
+        client.search_track({"primary_artist": "Busy", "title": "Track"})
+
+
+def test_simulator_add_count_property():
+    client = SimulatedSpotifyClient()
+    assert client.add_count == 0
+    client.add_tracks("pl", ["spotify:track:x"])
+    client.add_tracks("pl", ["spotify:track:y"])
+    assert client.add_count == 2
+
+
+def test_simulator_remove_count_property():
+    client = SimulatedSpotifyClient(fixture_data={
+        "initial_playlist": ["spotify:track:a", "spotify:track:b"]
+    })
+    assert client.remove_count == 0
+    client.remove_tracks("pl", ["spotify:track:a"])
+    assert client.remove_count == 1
+
+
 # ── RealSpotifyClient (mocked spotipy) ──────────────────────────────────────
 # These test the class methods with a mocked spotipy.Spotify instance.
 
