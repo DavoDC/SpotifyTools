@@ -81,12 +81,17 @@ def _clean_for_search(text: str) -> str:
     return re.sub(r'\s+', ' ', stripped).strip()
 
 
-def _open_in_manager(artist: str, title: str):
+def _build_deemix_url(artist: str, title: str) -> str:
+    """Pure URL-building half of _open_in_manager - reused by the AudioManager
+    GUI's Acquire tab so link-building logic isn't duplicated cross-repo."""
     primary = artist.split(' & ')[0].split(';')[0].strip()
     core_title = _FEAT_RE.sub('', title).strip()
     query = _clean_for_search(f"{primary} {core_title}")
-    url = f"{MANAGER_URL}?term={quote_plus(query)}"
-    webbrowser.open(url)
+    return f"{MANAGER_URL}?term={quote_plus(query)}"
+
+
+def _open_in_manager(artist: str, title: str):
+    webbrowser.open(_build_deemix_url(artist, title))
 
 
 def _open_interactively(tracks: list[tuple[str, str]]) -> None:

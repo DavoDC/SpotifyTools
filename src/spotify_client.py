@@ -14,13 +14,17 @@ from spotipy.oauth2 import SpotifyOAuth
 from src.spotify_interface import SpotifyInterface, AddResult, RemoveResult
 from src.matcher import clean_title, clean_artist, score_match
 
-SCOPES = "playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative"
+SCOPES = (
+    "playlist-modify-public playlist-modify-private playlist-read-private "
+    "playlist-read-collaborative user-library-read user-library-modify"
+)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE_PATH = os.path.join(BASE_DIR, "data", ".cache")
 
 MAX_RETRY = 5
 BATCH_SIZE = 100
+LIKED_BATCH_SIZE = 50  # Spotify's /me/tracks endpoints cap at 50 per call
 SEARCH_DELAY_S = 0.5       # delay between searches to avoid 429s
 MAX_RETRY_AFTER_S = 30     # cap on Retry-After sleep (don't trust huge values)
 
@@ -254,6 +258,59 @@ class RealSpotifyClient(SpotifyInterface):
                 break
 
         return dupes
+
+    def get_liked_track_uris(self) -> set[str]:
+        uris: set[str] = set()
+        offset = 0
+        while True:
+            page = _retry_call(self._sp, "current_user_saved_tracks", limit=LIKED_BATCH_SIZE, offset=offset)
+            items = page.get("items") or []
+            if not items:
+                break
+            for item in items:
+                track = item.get("track")
+                if track and track.get("uri"):
+                    uris.add(track["uri"])
+            if not page.get("next"):
+                break
+            offset += LIKED_BATCH_SIZE
+        logging.info(f"Read {len(uris)} liked track URIs")
+        return uris
+
+    def remove_liked_tracks(self, uris: list[str]) -> RemoveResult:
+        if not uris:
+            return RemoveResult()
+
+        removed = 0
+        for i in range(0, len(uris), LIKED_BATCH_SIZE):
+            batch = uris[i:i + LIKED_BATCH_SIZE]
+            try:
+                _retry_call(self._sp, "current_user_saved_tracks_delete", tracks=batch)
+                removed += len(batch)
+                logging.info(f"Removed batch of {len(batch)} liked tracks")
+            except Exception as e:
+                logging.error(f"Failed to remove liked-tracks batch: {e}")
+                return RemoveResult(removed_count=removed, failed=True)
+
+        return RemoveResult(removed_count=removed)
+
+    def get_or_create_playlist(self, name: str) -> str:
+        offset = 0
+        while True:
+            page = _retry_call(self._sp, "current_user_playlists", limit=50, offset=offset)
+            items = page.get("items") or []
+            for pl in items:
+                if pl.get("name") == name:
+                    logging.info(f"Reusing existing playlist '{name}' ({pl['id']})")
+                    return pl["id"]
+            if not page.get("next"):
+                break
+            offset += 50
+
+        user_id = _retry_call(self._sp, "current_user")["id"]
+        created = _retry_call(self._sp, "user_playlist_create", user_id, name, public=False)
+        logging.info(f"Created playlist '{name}' ({created['id']})")
+        return created["id"]
 
     def get_playlist_tracks(self, playlist_id: str) -> list[tuple[str, str]]:
         """Return (artist, title) for every track in a playlist."""

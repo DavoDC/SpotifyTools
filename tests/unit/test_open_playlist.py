@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from src.open_playlist import _open_interactively, _clean_for_search
+from src.open_playlist import _open_interactively, _clean_for_search, _build_deemix_url
 
 TRACKS = [
     ("Eminem", "My Name Is"),
@@ -147,3 +147,16 @@ def test_open_in_manager_single_artist_unchanged():
     """Single artist with no feat: only symbol stripping applies."""
     url = _capture_url("Ne-Yo", "Ms. Tundra")
     assert "Ne" in url and "Yo" in url and "Ms" in url and "Tundra" in url
+
+
+# ── _build_deemix_url (pure function, reused by AudioManager's Acquire tab) ──
+
+def test_build_deemix_url_matches_open_in_manager():
+    """_open_in_manager must just be webbrowser.open(_build_deemix_url(...))."""
+    assert _build_deemix_url("KYLE & Joshua Golden", "But Cha (feat. Josh Golden)") \
+        == _capture_url("KYLE & Joshua Golden", "But Cha (feat. Josh Golden)")
+
+
+def test_build_deemix_url_no_network_call():
+    url = _build_deemix_url("Eminem", "My Name Is")
+    assert url.startswith("http://localhost:6595/search?term=")

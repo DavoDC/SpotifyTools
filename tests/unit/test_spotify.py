@@ -184,6 +184,38 @@ def test_simulator_remove_count_property():
     assert client.remove_count == 1
 
 
+def test_simulator_get_liked_track_uris():
+    client = SimulatedSpotifyClient(fixture_data={"initial_liked": ["spotify:track:a", "spotify:track:b"]})
+    assert client.get_liked_track_uris() == {"spotify:track:a", "spotify:track:b"}
+
+
+def test_simulator_remove_liked_tracks():
+    client = SimulatedSpotifyClient(fixture_data={"initial_liked": ["spotify:track:a", "spotify:track:b"]})
+    result = client.remove_liked_tracks(["spotify:track:a"])
+    assert result.removed_count == 1
+    assert client.get_liked_track_uris() == {"spotify:track:b"}
+
+
+def test_simulator_remove_liked_tracks_empty():
+    client = SimulatedSpotifyClient()
+    result = client.remove_liked_tracks([])
+    assert result.removed_count == 0
+
+
+def test_simulator_get_or_create_playlist_creates_new():
+    client = SimulatedSpotifyClient()
+    playlist_id = client.get_or_create_playlist("AudioManager Inbox")
+    assert playlist_id
+    assert client.operations[-1]["created"] is True
+
+
+def test_simulator_get_or_create_playlist_reuses_existing():
+    client = SimulatedSpotifyClient(fixture_data={"initial_playlists": {"AudioManager Inbox": "pl_existing"}})
+    playlist_id = client.get_or_create_playlist("AudioManager Inbox")
+    assert playlist_id == "pl_existing"
+    assert client.operations[-1]["created"] is False
+
+
 # ── RealSpotifyClient (mocked spotipy) ──────────────────────────────────────
 # These test the class methods with a mocked spotipy.Spotify instance.
 
@@ -281,3 +313,62 @@ def test_real_client_remove_tracks():
 
     assert result.removed_count == 2
     client._sp._delete.assert_called_once()
+
+
+def test_real_client_get_liked_track_uris():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = {
+        "items": [{"track": {"uri": "spotify:track:a"}}, {"track": {"uri": "spotify:track:b"}}],
+        "next": None,
+    }
+
+    uris = client.get_liked_track_uris()
+    assert uris == {"spotify:track:a", "spotify:track:b"}
+
+
+def test_real_client_get_liked_track_uris_pagination():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.side_effect = [
+        {"items": [{"track": {"uri": "spotify:track:a"}}], "next": "http://next"},
+        {"items": [{"track": {"uri": "spotify:track:b"}}], "next": None},
+    ]
+
+    uris = client.get_liked_track_uris()
+    assert uris == {"spotify:track:a", "spotify:track:b"}
+    assert client._sp.current_user_saved_tracks.call_count == 2
+
+
+def test_real_client_remove_liked_tracks():
+    client = _mock_real_client()
+    result = client.remove_liked_tracks(["spotify:track:a", "spotify:track:b"])
+    assert result.removed_count == 2
+    client._sp.current_user_saved_tracks_delete.assert_called_once_with(tracks=["spotify:track:a", "spotify:track:b"])
+
+
+def test_real_client_remove_liked_tracks_empty():
+    client = _mock_real_client()
+    result = client.remove_liked_tracks([])
+    assert result.removed_count == 0
+    client._sp.current_user_saved_tracks_delete.assert_not_called()
+
+
+def test_real_client_get_or_create_playlist_reuses_existing():
+    client = _mock_real_client()
+    client._sp.current_user_playlists.return_value = {
+        "items": [{"name": "AudioManager Inbox", "id": "pl_existing"}], "next": None,
+    }
+
+    playlist_id = client.get_or_create_playlist("AudioManager Inbox")
+    assert playlist_id == "pl_existing"
+    client._sp.user_playlist_create.assert_not_called()
+
+
+def test_real_client_get_or_create_playlist_creates_new():
+    client = _mock_real_client()
+    client._sp.current_user_playlists.return_value = {"items": [], "next": None}
+    client._sp.current_user.return_value = {"id": "user1"}
+    client._sp.user_playlist_create.return_value = {"id": "pl_new"}
+
+    playlist_id = client.get_or_create_playlist("AudioManager Inbox")
+    assert playlist_id == "pl_new"
+    client._sp.user_playlist_create.assert_called_once_with("user1", "AudioManager Inbox", public=False)
