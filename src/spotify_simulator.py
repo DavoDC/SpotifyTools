@@ -51,6 +51,10 @@ class SimulatedSpotifyClient(SpotifyInterface):
         # In-memory playlist state
         self._playlist: list[str] = list(self._fixture.get("initial_playlist", []))
 
+        # In-memory liked-songs + named-playlist state (Acquire flow)
+        self._liked: list[str] = list(self._fixture.get("initial_liked", []))
+        self._playlists: dict[str, str] = dict(self._fixture.get("initial_playlists", {}))
+
         # Operation log for assertions in tests
         self.operations: list[dict] = []
 
@@ -124,6 +128,37 @@ class SimulatedSpotifyClient(SpotifyInterface):
         self.operations.append({"type": "remove", "uris": list(uris), "count": removed})
         logging.info(f"[SIM] remove_tracks({len(uris)} URIs, removed={removed})")
         return RemoveResult(removed_count=removed)
+
+    def get_liked_track_uris(self) -> set[str]:
+        uris = set(self._liked)
+        self.operations.append({"type": "get_liked", "count": len(uris)})
+        logging.info(f"[SIM] get_liked_track_uris() -> {len(uris)} URIs")
+        return uris
+
+    def remove_liked_tracks(self, uris: list[str]) -> RemoveResult:
+        if not uris:
+            return RemoveResult()
+
+        removed = 0
+        for uri in uris:
+            if uri in self._liked:
+                self._liked.remove(uri)
+                removed += 1
+
+        self.operations.append({"type": "remove_liked", "uris": list(uris), "count": removed})
+        logging.info(f"[SIM] remove_liked_tracks({len(uris)} URIs, removed={removed})")
+        return RemoveResult(removed_count=removed)
+
+    def get_or_create_playlist(self, name: str) -> str:
+        if name in self._playlists:
+            self.operations.append({"type": "get_playlist_by_name", "name": name, "created": False})
+            return self._playlists[name]
+
+        playlist_id = f"sim_playlist_{len(self._playlists) + 1}"
+        self._playlists[name] = playlist_id
+        self.operations.append({"type": "get_playlist_by_name", "name": name, "created": True})
+        logging.info(f"[SIM] get_or_create_playlist({name}) -> created {playlist_id}")
+        return playlist_id
 
     def find_duplicates(self, playlist_id: str) -> dict[str, int]:
         seen: set[str] = set()

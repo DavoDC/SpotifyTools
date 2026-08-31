@@ -65,3 +65,19 @@ class SpotifyInterface(ABC):
     def current_user(self) -> dict:
         """Return current authenticated user info."""
         ...
+
+    @abstractmethod
+    def get_liked_track_uris(self) -> set[str]:
+        """Read all track URIs from the current user's Liked Songs."""
+        ...
+
+    @abstractmethod
+    def remove_liked_tracks(self, uris: list[str]) -> RemoveResult:
+        """Remove tracks from the current user's Liked Songs, in batches."""
+        ...
+
+    @abstractmethod
+    def get_or_create_playlist(self, name: str) -> str:
+        """Return the id of the current user's playlist with this name,
+        creating a new private playlist if none exists yet."""
+        ...

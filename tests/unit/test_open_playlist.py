@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from src.open_playlist import _open_interactively, _clean_for_search
+from src.open_playlist import _open_interactively, _clean_for_search, _build_search_url
 
 TRACKS = [
     ("Eminem", "My Name Is"),
@@ -147,3 +147,16 @@ def test_open_search_single_artist_unchanged():
     """Single artist with no feat: only symbol stripping applies."""
     url = _capture_url("Ne-Yo", "Ms. Tundra")
     assert "Ne" in url and "Yo" in url and "Ms" in url and "Tundra" in url
+
+
+# ── _build_search_url (pure function, reused by another app) ──
+
+def test_build_search_url_matches_open_search():
+    """_open_search must just be webbrowser.open(_build_search_url(...))."""
+    assert _build_search_url("KYLE & Joshua Golden", "But Cha (feat. Josh Golden)") \
+        == _capture_url("KYLE & Joshua Golden", "But Cha (feat. Josh Golden)")
+
+
+def test_build_search_url_no_network_call():
+    url = _build_search_url("Eminem", "My Name Is")
+    assert url.startswith("a local search URL?term=")
