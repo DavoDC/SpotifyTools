@@ -342,6 +342,12 @@ class RealSpotifyClient(SpotifyInterface):
         logging.info(f"Read {len(tracks)} tracks from playlist {playlist_id}")
         return tracks
 
+    def get_playlist_name(self, playlist_id: str) -> str:
+        """Return a playlist's display name. Single lightweight field fetch -
+        no track pagination - for labelling playlist-history entries in the GUI."""
+        playlist = _retry_call(self._sp, "playlist", playlist_id, fields="name")
+        return playlist.get("name", "") if playlist else ""
+
     def get_playlist_tracks_detailed(self, playlist_id: str) -> list[dict]:
         """Return {artist, title, album, year, duration_ms} for every track in a playlist.
 
