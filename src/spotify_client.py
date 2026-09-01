@@ -341,3 +341,46 @@ class RealSpotifyClient(SpotifyInterface):
 
         logging.info(f"Read {len(tracks)} tracks from playlist {playlist_id}")
         return tracks
+
+    def get_playlist_tracks_detailed(self, playlist_id: str) -> list[dict]:
+        """Return {artist, title, album, year, duration_ms} for every track in a playlist.
+
+        Separate from get_playlist_tracks (which several callers unpack as a
+        plain (artist, title) 2-tuple) so this richer shape never breaks them.
+        """
+        playlist = _retry_call(self._sp, "playlist", playlist_id)
+        page = playlist.get("items") or playlist.get("tracks")
+        if page is None:
+            logging.warning(f"Playlist {playlist_id}: no items/tracks key in response")
+            return []
+
+        tracks = []
+        while page:
+            for item in (page.get("items") or []):
+                track = _get_track_obj(item) if item else None
+                if not track or not track.get("id"):
+                    continue
+                artists = track.get("artists", [])
+                artist = " & ".join(a["name"] for a in artists) if artists else "Unknown"
+                title = track.get("name", "Unknown")
+                album = track.get("album") or {}
+                release_date = album.get("release_date", "")
+                year = release_date[:4] if release_date else ""
+                tracks.append({
+                    "artist": artist,
+                    "title": title,
+                    "album": album.get("name", ""),
+                    "year": year,
+                    "duration_ms": track.get("duration_ms", 0),
+                })
+            if page.get("next"):
+                try:
+                    page = self._sp.next(page)
+                except Exception as e:
+                    logging.warning(f"Playlist pagination stopped: {e}")
+                    break
+            else:
+                break
+
+        logging.info(f"Read {len(tracks)} detailed tracks from playlist {playlist_id}")
+        return tracks
