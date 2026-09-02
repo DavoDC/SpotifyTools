@@ -1,10 +1,12 @@
-# SpotifyPlaylistGen
+# SpotifyTools
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/G2G31WKOCN)
 
 
 
 Python CLI tool that syncs your offline music library (AudioMirror XML) to a Spotify playlist.
+
+**Consumption note:** AudioManager's Python GUI (`gui/tabs/acquire.py`) consumes this repo directly via a sibling-directory `sys.path.insert` import, not as a pip-installed package - this is deliberate, not a packaged/installed shared library.
 
 **Use case:** Offline music library at home → listen to the same tracks on Spotify at work.
 
@@ -79,13 +81,13 @@ Use `--reset-exhausted` to retry tracks that gave up after 5 failed searches (e.
 ## Project structure
 
 ```
-SpotifyPlaylistGen/
+SpotifyTools/
 ├── CLAUDE.md / GUIDELINES.md   # Engineering rules
 ├── config/
 │   ├── config.json             # Credentials (gitignored)
 │   ├── config.example.json     # Template
 │   └── requirements.txt
-├── src/
+├── spotify_tools/
 │   ├── main.py                 # CLI entrypoint + pipeline
 │   ├── config.py               # Config loading/validation
 │   ├── xml_parser.py           # AudioMirror XML reader

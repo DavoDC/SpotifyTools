@@ -1,4 +1,4 @@
-# SpotifyPlaylistGen
+# SpotifyTools
 
 **Two tools in this repo:**
 - `spotify_tools/main.py` - batch sync tool. Reads AudioMirror XML library, syncs to a Spotify playlist. Run via `scripts/run.bat`.
@@ -52,7 +52,7 @@ data/
 
 ```bash
 # Run tests
-cd C:\Users\David\GitHubRepos\SpotifyPlaylistGen
+cd C:\Users\David\GitHubRepos\SpotifyTools
 python -m pytest tests/ -v
 
 # Run the tool
@@ -83,4 +83,4 @@ Two bugs block large-library (5000+ track) processing. Full details in `docs/IDE
 **Bug #2 - Unicode Matching:** `normalise()` doesn't strip diacritics so "JAY-Z" (with diacritic) matches as LOW. Fix: add `unicodedata.normalize('NFKD', s)` to `normalise()` in `matcher.py`.
 
 Review this log from the last rate-limit run before starting:
-`C:\Users\David\GitHubRepos\SpotifyPlaylistGen\data\logs\terminal_28_03_2026_2.txt`
+`C:\Users\David\GitHubRepos\SpotifyTools\data\logs\terminal_28_03_2026_2.txt`

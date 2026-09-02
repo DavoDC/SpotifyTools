@@ -1,4 +1,4 @@
-# Spotify Web API Reference — SpotifyPlaylistGen
+# Spotify Web API Reference - SpotifyTools
 
 **Last verified:** 2026-03-10
 **Source:** https://developer.spotify.com/documentation/web-api

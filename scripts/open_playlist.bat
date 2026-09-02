@@ -1,8 +1,8 @@
 @echo off
 echo [%date% %time%] open_playlist start
 echo.
-cd /d C:\Users\David\GitHubRepos\SpotifyPlaylistGen
-python src\open_playlist.py
+cd /d C:\Users\David\GitHubRepos\SpotifyTools
+python -m spotify_tools.open_playlist
 echo.
 echo [%date% %time%] open_playlist done
 cmd /k

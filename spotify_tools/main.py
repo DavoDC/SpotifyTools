@@ -1,4 +1,4 @@
-"""SpotifyPlaylistGen — CLI entrypoint.
+"""SpotifyTools - CLI entrypoint.
 
 Orchestrates the 4-stage playlist sync pipeline:
   Stage 1: Parse XML library
@@ -437,7 +437,7 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
     log_file = setup_logging()
-    logging.info("=== SpotifyPlaylistGen started ===")
+    logging.info("=== SpotifyTools started ===")
 
     # Parse CLI flags
     simulate = "--simulate" in sys.argv
@@ -455,7 +455,7 @@ def main():
         return
 
     print(f"\n{'='*60}")
-    print(f"  SpotifyPlaylistGen")
+    print(f"  SpotifyTools")
     print(f"  Log: {log_file}")
     if simulate:
         print(f"  Mode: SIMULATION")

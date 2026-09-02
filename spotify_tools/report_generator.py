@@ -44,7 +44,7 @@ def generate_report(report_dir: str,
     total_custom = sum(1 for v in tracks.values() if v.get("state") == "custom")
 
     lines = [
-        f"# SpotifyPlaylistGen — Match Report",
+        f"# SpotifyTools - Match Report",
         f"",
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"",

@@ -1,7 +1,7 @@
 # Spotify Playlist Generator
 
 **Status:** Stabilization pass complete — 170 tests passing, 4 critical defects fixed
-**Repo:** `C:\Users\David\GitHubRepos\SpotifyPlaylistGen` (https://github.com/DavoDC/SpotifyPlaylistGen)
+**Repo:** `C:\Users\David\GitHubRepos\SpotifyTools` (https://github.com/DavoDC/SpotifyTools)
 **Playlist:** https://open.spotify.com/playlist/50W1xpWQPLVDSFeeBqpjSp
 **Playlist ID:** `50W1xpWQPLVDSFeeBqpjSp`
 **Stack:** Python 3.x CLI, spotipy 2.24.0, pytest 8.3.0
