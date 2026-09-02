@@ -1,5 +1,5 @@
 #!/bin/bash
 cd <home>/GitHubRepos/SpotifyTools
-python src/diagnose.py --silent &
+python -m spotify_tools.diagnose --silent &
 winpty python -m spotify_tools.main
 exec bash

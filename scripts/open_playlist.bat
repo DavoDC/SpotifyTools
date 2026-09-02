@@ -2,7 +2,7 @@
 echo [%date% %time%] open_playlist start
 echo.
 cd /d <home>\GitHubRepos\SpotifyTools
-python src\open_playlist.py
+python -m spotify_tools.open_playlist
 echo.
 echo [%date% %time%] open_playlist done
 cmd /k

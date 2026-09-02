@@ -1,4 +1,4 @@
-"""SpotifyTools — CLI entrypoint.
+"""SpotifyTools - CLI entrypoint.
 
 Orchestrates the 4-stage playlist sync pipeline:
   Stage 1: Parse XML library
