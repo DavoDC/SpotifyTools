@@ -1,10 +1,10 @@
 # SpotifyPlaylistGen
 
 **Two tools in this repo:**
-- `src/main.py` - batch sync tool. Reads AudioMirror XML library, syncs to a Spotify playlist. Run via `scripts/run.bat`.
-- `src/open_playlist.py` - interactive browser. Opens Spotify playlist tracks in browser one by one for review/lookup.
+- `spotify_tools/main.py` - batch sync tool. Reads AudioMirror XML library, syncs to a Spotify playlist. Run via `scripts/run.bat`.
+- `spotify_tools/open_playlist.py` - interactive browser. Opens Spotify playlist tracks in browser one by one for review/lookup.
 
-Both share `src/spotify_client.py` as the Spotify API client.
+Both share `spotify_tools/spotify_client.py` as the Spotify API client.
 
 ## Mandatory Rules
 
@@ -19,7 +19,7 @@ Read and follow `GUIDELINES.md` before making any changes. It defines engineerin
 ## Project Structure
 
 ```
-src/
+spotify_tools/
   main.py               - CLI entrypoint, stage orchestration (sync tool)
   open_playlist.py      - Interactive playlist browser
   config.py             - Config loading/validation

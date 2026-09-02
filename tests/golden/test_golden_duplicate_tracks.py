@@ -10,9 +10,9 @@ import json
 import os
 import tempfile
 
-from src.main import run_pipeline, track_key
-from src.history_store import HistoryStore
-from src.spotify_simulator import SimulatedSpotifyClient
+from spotify_tools.main import run_pipeline, track_key
+from spotify_tools.history_store import HistoryStore
+from spotify_tools.spotify_simulator import SimulatedSpotifyClient
 
 FIXTURES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "fixtures")
 GOLDEN_LIBRARY = os.path.join(FIXTURES_DIR, "golden_library")

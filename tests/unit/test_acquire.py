@@ -1,7 +1,7 @@
 """Tests for src/acquire.py (Stage 2A: Liked Songs -> inbox playlist)."""
 
-from src.acquire import move_liked_to_playlist, INBOX_PLAYLIST_NAME
-from src.spotify_simulator import SimulatedSpotifyClient
+from spotify_tools.acquire import move_liked_to_playlist, INBOX_PLAYLIST_NAME
+from spotify_tools.spotify_simulator import SimulatedSpotifyClient
 
 
 def test_moves_all_liked_tracks_to_new_playlist():

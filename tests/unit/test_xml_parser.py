@@ -1,5 +1,5 @@
 import pytest
-from src.xml_parser import parse_track, parse_library
+from spotify_tools.xml_parser import parse_track, parse_library
 import xml.etree.ElementTree as ET
 import os
 

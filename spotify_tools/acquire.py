@@ -6,7 +6,7 @@ Used by AudioManager's GUI "Acquire" tab and available for CLI/test use here.
 
 from dataclasses import dataclass, field
 
-from src.spotify_interface import SpotifyInterface
+from spotify_tools.spotify_interface import SpotifyInterface
 
 INBOX_PLAYLIST_NAME = "AudioManager Inbox"
 

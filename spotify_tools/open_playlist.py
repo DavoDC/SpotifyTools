@@ -16,8 +16,8 @@ from urllib.parse import quote_plus
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
-from src.config import load_config, CONFIG_PATH
-from src.spotify_client import RealSpotifyClient
+from spotify_tools.config import load_config, CONFIG_PATH
+from spotify_tools.spotify_client import RealSpotifyClient
 
 MANAGER_URL = "http://localhost:6595/search"
 CACHE_DIR = os.path.join(BASE_DIR, "data", "playlist_cache")

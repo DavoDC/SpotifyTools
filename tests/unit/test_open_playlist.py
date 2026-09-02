@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from src.open_playlist import _open_interactively, _clean_for_search, _build_deemix_url
+from spotify_tools.open_playlist import _open_interactively, _clean_for_search, _build_deemix_url
 
 TRACKS = [
     ("Eminem", "My Name Is"),
@@ -15,7 +15,7 @@ def test_opens_all_tracks_with_enter(capsys):
     """All Enter presses: all three tracks opened."""
     # start prompt + 2 inter-track prompts (no prompt after last track)
     with patch("builtins.input", side_effect=["", "", ""]), \
-         patch("src.open_playlist._open_in_manager") as mock_open:
+         patch("spotify_tools.open_playlist._open_in_manager") as mock_open:
         _open_interactively(TRACKS)
     assert mock_open.call_count == 3
     mock_open.assert_any_call("Eminem", "My Name Is")
@@ -29,7 +29,7 @@ def test_quit_mid_way(capsys):
     """'q' after second track: only 2 tracks opened."""
     # start prompt -> '' after track 1 -> 'q' after track 2
     with patch("builtins.input", side_effect=["", "", "q"]), \
-         patch("src.open_playlist._open_in_manager") as mock_open:
+         patch("spotify_tools.open_playlist._open_in_manager") as mock_open:
         _open_interactively(TRACKS)
     assert mock_open.call_count == 2
     out = capsys.readouterr().out
@@ -39,7 +39,7 @@ def test_quit_mid_way(capsys):
 def test_ctrl_c_stops_gracefully(capsys):
     """KeyboardInterrupt after first open: stops cleanly after 1 track."""
     with patch("builtins.input", side_effect=["", KeyboardInterrupt]), \
-         patch("src.open_playlist._open_in_manager") as mock_open:
+         patch("spotify_tools.open_playlist._open_in_manager") as mock_open:
         _open_interactively(TRACKS)
     assert mock_open.call_count == 1
     out = capsys.readouterr().out
@@ -48,7 +48,7 @@ def test_ctrl_c_stops_gracefully(capsys):
 
 def test_empty_list_prints_message(capsys):
     """Empty track list: no opens, prints informative message."""
-    with patch("src.open_playlist._open_in_manager") as mock_open:
+    with patch("spotify_tools.open_playlist._open_in_manager") as mock_open:
         _open_interactively([])
     assert mock_open.call_count == 0
     out = capsys.readouterr().out
@@ -58,7 +58,7 @@ def test_empty_list_prints_message(capsys):
 def test_single_track_no_next_prompt():
     """Single track: only the start prompt fires, no inter-track prompt."""
     with patch("builtins.input", side_effect=[""]) as mock_input, \
-         patch("src.open_playlist._open_in_manager") as mock_open:
+         patch("spotify_tools.open_playlist._open_in_manager") as mock_open:
         _open_interactively([("Eminem", "My Name Is")])
     assert mock_open.call_count == 1
     assert mock_input.call_count == 1  # only the "Ready to start" prompt
@@ -73,7 +73,7 @@ def test_open_interactively_sorts_by_primary_artist():
     ]
     opened = []
     with patch("builtins.input", side_effect=["", "", ""]), \
-         patch("src.open_playlist._open_in_manager", side_effect=lambda a, t: opened.append((a, t))):
+         patch("spotify_tools.open_playlist._open_in_manager", side_effect=lambda a, t: opened.append((a, t))):
         _open_interactively(unsorted)
     assert opened[0] == ("Akon", "First")
     assert opened[1] == ("Mura Masa", "Second")
@@ -101,8 +101,8 @@ def test_clean_for_search_collapses_whitespace():
 def test_open_in_manager_url_has_no_percent_encoded_symbols():
     """URL built for artist with & must not contain %26 or other %XX symbols."""
     captured = []
-    with patch("src.open_playlist.webbrowser.open", side_effect=lambda u: captured.append(u)):
-        from src.open_playlist import _open_in_manager
+    with patch("spotify_tools.open_playlist.webbrowser.open", side_effect=lambda u: captured.append(u)):
+        from spotify_tools.open_playlist import _open_in_manager
         _open_in_manager("TJ Hickey & Nate Good", "sea side nights")
     url = captured[0]
     assert "%26" not in url
@@ -115,8 +115,8 @@ def test_open_in_manager_url_has_no_percent_encoded_symbols():
 
 def _capture_url(artist, title):
     captured = []
-    with patch("src.open_playlist.webbrowser.open", side_effect=lambda u: captured.append(u)):
-        from src.open_playlist import _open_in_manager
+    with patch("spotify_tools.open_playlist.webbrowser.open", side_effect=lambda u: captured.append(u)):
+        from spotify_tools.open_playlist import _open_in_manager
         _open_in_manager(artist, title)
     return captured[0]
 

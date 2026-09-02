@@ -57,7 +57,7 @@ Each module must have a single clear responsibility.
 Target structure:
 
 ```
-src/
+spotify_tools/
   xml_parser.py          — Parse AudioMirror XML
   matcher.py             — Normalize strings + match/score tracks
   spotify_interface.py   — ABC for swappable API clients
