@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.spotify_client import RealSpotifyClient
+from spotify_tools.spotify_client import RealSpotifyClient
 
 SILENT = "--silent" in sys.argv
 

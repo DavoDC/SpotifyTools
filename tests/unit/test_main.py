@@ -4,20 +4,20 @@ Tests for extracted modules (config, report_generator) are in their own files.
 """
 import importlib
 import os
-from src.main import track_key, ADDED, UNMATCHED, SAVE_INTERVAL, FLUSH_INTERVAL
+from spotify_tools.main import track_key, ADDED, UNMATCHED, SAVE_INTERVAL, FLUSH_INTERVAL
 
 
 # ── module sanity ─────────────────────────────────────────────────────────────
 
 def test_main_module_imports():
-    importlib.import_module("src.main")
+    importlib.import_module("spotify_tools.main")
 
 def test_main_has_main_function():
-    mod = importlib.import_module("src.main")
+    mod = importlib.import_module("spotify_tools.main")
     assert callable(getattr(mod, "main", None)), "main() function missing"
 
 def test_main_has_run_pipeline():
-    mod = importlib.import_module("src.main")
+    mod = importlib.import_module("spotify_tools.main")
     assert callable(getattr(mod, "run_pipeline", None)), "run_pipeline() function missing"
 
 def test_main_constants_defined():
@@ -41,7 +41,7 @@ def test_track_key_special_chars():
 # ── reset_exhausted_tracks ────────────────────────────────────────────────────
 
 def test_reset_exhausted_resets_state_and_attempts():
-    from src.main import reset_exhausted_tracks
+    from spotify_tools.main import reset_exhausted_tracks
     history = {"version": 2, "tracks": {
         "Artist|Song": {"state": "exhausted", "search_attempts": 5, "display": "Artist - Song"},
     }}
@@ -51,7 +51,7 @@ def test_reset_exhausted_resets_state_and_attempts():
     assert history["tracks"]["Artist|Song"]["search_attempts"] == 0
 
 def test_reset_exhausted_leaves_other_states_unchanged():
-    from src.main import reset_exhausted_tracks
+    from spotify_tools.main import reset_exhausted_tracks
     history = {"version": 2, "tracks": {
         "A|Song1": {"state": "added", "search_attempts": 1, "display": "..."},
         "A|Song2": {"state": "unmatched", "search_attempts": 2, "display": "..."},
@@ -64,7 +64,7 @@ def test_reset_exhausted_leaves_other_states_unchanged():
     assert history["tracks"]["A|Song3"]["state"] == "custom"
 
 def test_reset_exhausted_returns_correct_count():
-    from src.main import reset_exhausted_tracks
+    from spotify_tools.main import reset_exhausted_tracks
     history = {"version": 2, "tracks": {
         "A|1": {"state": "exhausted", "search_attempts": 5, "display": "..."},
         "A|2": {"state": "exhausted", "search_attempts": 6, "display": "..."},
@@ -74,6 +74,6 @@ def test_reset_exhausted_returns_correct_count():
     assert count == 2
 
 def test_reset_exhausted_empty_history():
-    from src.main import reset_exhausted_tracks
+    from spotify_tools.main import reset_exhausted_tracks
     history = {"version": 2, "tracks": {}}
     assert reset_exhausted_tracks(history) == 0

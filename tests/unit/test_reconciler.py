@@ -1,6 +1,6 @@
 """Tests for src/reconciler.py — deterministic playlist reconciliation."""
 
-from src.reconciler import reconcile, ReconciliationPlan, MAX_SEARCH_ATTEMPTS
+from spotify_tools.reconciler import reconcile, ReconciliationPlan, MAX_SEARCH_ATTEMPTS
 
 
 def _key(track):

@@ -65,7 +65,7 @@ pip install -r config/requirements.txt
 Double-click `scripts/run.bat` (Windows) or:
 
 ```bash
-python -m src.main
+python -m spotify_tools.main
 ```
 
 On first run, a browser window will open for Spotify login. After that, auth is cached.

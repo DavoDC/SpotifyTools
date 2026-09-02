@@ -9,9 +9,9 @@ import pytest
 from unittest.mock import MagicMock, patch
 import spotipy
 
-from src.spotify_client import RealSpotifyClient, _get_track_obj
-from src.spotify_simulator import SimulatedSpotifyClient
-from src.spotify_interface import AddResult, RemoveResult
+from spotify_tools.spotify_client import RealSpotifyClient, _get_track_obj
+from spotify_tools.spotify_simulator import SimulatedSpotifyClient
+from spotify_tools.spotify_interface import AddResult, RemoveResult
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

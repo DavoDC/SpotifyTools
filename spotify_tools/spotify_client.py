@@ -11,8 +11,8 @@ import time
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-from src.spotify_interface import SpotifyInterface, AddResult, RemoveResult
-from src.matcher import clean_title, clean_artist, score_match
+from spotify_tools.spotify_interface import SpotifyInterface, AddResult, RemoveResult
+from spotify_tools.matcher import clean_title, clean_artist, score_match
 
 SCOPES = (
     "playlist-modify-public playlist-modify-private playlist-read-private "

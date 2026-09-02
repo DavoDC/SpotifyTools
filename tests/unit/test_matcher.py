@@ -1,5 +1,5 @@
 import pytest
-from src.matcher import score_match, clean_title, clean_artist, normalise
+from spotify_tools.matcher import score_match, clean_title, clean_artist, normalise
 
 
 def test_clean_title_removes_feat():

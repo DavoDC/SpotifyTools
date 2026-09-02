@@ -5,7 +5,7 @@ import tempfile
 
 import pytest
 
-from src.lockfile import LockFile
+from spotify_tools.lockfile import LockFile
 
 
 def test_acquire_succeeds_when_no_lockfile():

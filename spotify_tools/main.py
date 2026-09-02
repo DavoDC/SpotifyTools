@@ -13,13 +13,13 @@ import sys
 import time
 from datetime import datetime
 
-from src.config import load_config, validate_config, CONFIG_PATH
-from src.xml_parser import parse_library
-from src.history_store import HistoryStore
-from src.lockfile import LockFile
-from src.reconciler import reconcile, MAX_SEARCH_ATTEMPTS
-from src.report_generator import generate_report
-from src.spotify_interface import SpotifyInterface
+from spotify_tools.config import load_config, validate_config, CONFIG_PATH
+from spotify_tools.xml_parser import parse_library
+from spotify_tools.history_store import HistoryStore
+from spotify_tools.lockfile import LockFile
+from spotify_tools.reconciler import reconcile, MAX_SEARCH_ATTEMPTS
+from spotify_tools.report_generator import generate_report
+from spotify_tools.spotify_interface import SpotifyInterface
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HISTORY_PATH = os.path.join(BASE_DIR, "data", "history.json")
@@ -462,11 +462,11 @@ def main():
     print(f"{'='*60}")
 
     if simulate:
-        from src.spotify_simulator import SimulatedSpotifyClient
+        from spotify_tools.spotify_simulator import SimulatedSpotifyClient
         fixture_path = os.path.join(BASE_DIR, "tests", "fixtures", "golden_spotify_responses.json")
         client = SimulatedSpotifyClient(fixture_path=fixture_path)
     else:
-        from src.spotify_client import RealSpotifyClient
+        from spotify_tools.spotify_client import RealSpotifyClient
         try:
             client = RealSpotifyClient(config)
         except Exception as e:

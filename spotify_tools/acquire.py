@@ -6,7 +6,7 @@ Available for CLI and test use.
 
 from dataclasses import dataclass, field
 
-from src.spotify_interface import SpotifyInterface
+from spotify_tools.spotify_interface import SpotifyInterface
 
 INBOX_PLAYLIST_NAME = "Inbox"
 

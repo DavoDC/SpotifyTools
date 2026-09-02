@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from src.history_store import HistoryStore, CURRENT_VERSION
+from spotify_tools.history_store import HistoryStore, CURRENT_VERSION
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

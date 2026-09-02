@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Optional
 
-from src.spotify_interface import SpotifyInterface, AddResult, RemoveResult
+from spotify_tools.spotify_interface import SpotifyInterface, AddResult, RemoveResult
 
 
 class SimulatedSpotifyClient(SpotifyInterface):

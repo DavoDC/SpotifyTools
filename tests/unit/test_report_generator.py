@@ -3,7 +3,7 @@
 import os
 import tempfile
 
-from src.report_generator import generate_report
+from spotify_tools.report_generator import generate_report
 
 
 def _v2_history(added=2, unmatched=1, exhausted=0, custom=1):

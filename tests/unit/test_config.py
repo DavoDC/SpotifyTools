@@ -4,7 +4,7 @@ import json
 import os
 import tempfile
 
-from src.config import load_config, validate_config
+from spotify_tools.config import load_config, validate_config
 
 
 FULL_CONFIG = {
