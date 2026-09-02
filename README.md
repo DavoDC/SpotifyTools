@@ -67,6 +67,7 @@ pip install -r config/requirements.txt
 Double-click `scripts/run.bat` (Windows) or:
 
 ```bash
+cd src
 python -m spotify_tools.main
 ```
 
@@ -87,18 +88,19 @@ SpotifyTools/
 │   ├── config.json             # Credentials (gitignored)
 │   ├── config.example.json     # Template
 │   └── requirements.txt
-├── spotify_tools/
-│   ├── main.py                 # CLI entrypoint + pipeline
-│   ├── config.py               # Config loading/validation
-│   ├── xml_parser.py           # AudioMirror XML reader
-│   ├── matcher.py              # Match scoring
-│   ├── spotify_interface.py    # ABC for API clients
-│   ├── spotify_client.py       # Real Spotify client
-│   ├── spotify_simulator.py    # Mock client for testing
-│   ├── history_store.py        # Safe JSON persistence
-│   ├── reconciler.py           # Deterministic sync algorithm
-│   ├── report_generator.py     # Markdown reports
-│   └── lockfile.py             # Concurrent run protection
+├── src/
+│   └── spotify_tools/
+│       ├── main.py             # CLI entrypoint + pipeline
+│       ├── config.py           # Config loading/validation
+│       ├── xml_parser.py       # AudioMirror XML reader
+│       ├── matcher.py          # Match scoring
+│       ├── spotify_interface.py    # ABC for API clients
+│       ├── spotify_client.py   # Real Spotify client
+│       ├── spotify_simulator.py    # Mock client for testing
+│       ├── history_store.py    # Safe JSON persistence
+│       ├── reconciler.py       # Deterministic sync algorithm
+│       ├── report_generator.py # Markdown reports
+│       └── lockfile.py         # Concurrent run protection
 ├── tests/
 │   ├── unit/                   # Unit tests
 │   ├── golden/                 # End-to-end golden path tests
