@@ -4,7 +4,7 @@ import json
 import os
 import tempfile
 
-from spotify_tools.config import load_config, validate_config
+from spotify_tools.config import CONFIG_PATH, load_config, validate_config
 
 
 FULL_CONFIG = {
@@ -20,6 +20,18 @@ FULL_CONFIG = {
 
 def test_load_config_returns_empty_dict_if_missing():
     assert load_config("/nonexistent/path/config.json") == {}
+
+
+def test_config_path_resolves_to_a_real_file():
+    """CONFIG_PATH (no override) must point at a file that actually exists.
+
+    Regression test for the 2026-09-02 off-by-one bug: moving config.py from
+    spotify_tools/ to src/spotify_tools/ added a directory level that BASE_DIR's
+    dirname() count didn't account for, so CONFIG_PATH silently pointed at
+    src/config/config.json instead of config/config.json. Every other test in
+    this file passes an explicit path= and would stay green regardless.
+    """
+    assert os.path.exists(CONFIG_PATH), CONFIG_PATH
 
 
 def test_load_config_reads_valid_file():
