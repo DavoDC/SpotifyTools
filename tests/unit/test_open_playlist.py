@@ -2,7 +2,14 @@
 
 from unittest.mock import patch
 
-from spotify_tools.open_playlist import _open_interactively, _clean_for_search, _build_search_url
+import pytest
+
+from spotify_tools.open_playlist import (
+    SEARCH_BASE,
+    _build_search_url,
+    _clean_for_search,
+    _open_interactively,
+)
 
 TRACKS = [
     ("Eminem", "My Name Is"),
@@ -160,3 +167,33 @@ def test_build_search_url_matches_open_search():
 def test_build_search_url_no_network_call():
     url = _build_search_url("Eminem", "My Name Is")
     assert url.startswith("a local search URL?term=")
+
+
+# ── feat/ft stripping must not eat words that merely CONTAIN "ft"/"feat" ──
+# Regression: `_FEAT_RE` had no word boundary, so "Left Behind" was truncated to
+# "Le" and the external tool link searched for garbage. Confirmed against the live
+# external tool instance on 2026-09-05 - see docs/IDEAS.md.
+
+@pytest.mark.parametrize("artist,title,expected_term", [
+    ("Linkin Park", "Left Behind", "Linkin+Park+Left+Behind"),
+    ("Dobie Gray", "Drift Away", "Dobie+Gray+Drift+Away"),
+    ("Rihanna", "Lift Me Up", "Rihanna+Lift+Me+Up"),
+    ("De La Soul", "Defeat Me", "De+La+Soul+Defeat+Me"),
+    ("Daft Punk", "Aerodynamic", "Daft+Punk+Aerodynamic"),
+    ("Foo", "Soft Rock", "Foo+Soft+Rock"),
+])
+def test_build_search_url_keeps_words_containing_ft(artist, title, expected_term):
+    """A title containing 'ft'/'feat' inside a word must survive intact."""
+    assert _build_search_url(artist, title) == f"{SEARCH_BASE}?term={expected_term}"
+
+
+@pytest.mark.parametrize("artist,title,expected_term", [
+    ("KYLE & Joshua Golden", "But Cha (feat. Josh Golden)", "KYLE+But+Cha"),
+    ("Wiz Khalifa", "Payphone (ft. Maroon 5)", "Wiz+Khalifa+Payphone"),
+    ("Artist", "Song [feat. Someone]", "Artist+Song"),
+    ("Artist", "Song feat Someone", "Artist+Song"),
+    ("Artist", "Song FEAT. Someone", "Artist+Song"),
+])
+def test_build_search_url_still_strips_real_featured_artists(artist, title, expected_term):
+    """Genuine 'feat.'/'ft.' credits must still be stripped."""
+    assert _build_search_url(artist, title) == f"{SEARCH_BASE}?term={expected_term}"
