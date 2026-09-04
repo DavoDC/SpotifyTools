@@ -372,3 +372,138 @@ def test_real_client_get_or_create_playlist_creates_new():
     playlist_id = client.get_or_create_playlist("AudioManager Inbox")
     assert playlist_id == "pl_new"
     client._sp.user_playlist_create.assert_called_once_with("user1", "AudioManager Inbox", public=False)
+
+
+# ── detailed track reads (playlist + Liked Songs) ───────────────────────────
+# Both return the same row shape, because AudioManager's Acquire tab feeds
+# either source into the same table. The shared shape is asserted here so the
+# two can never drift apart.
+
+DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms"}
+
+
+def detailed_track(name="Song", artists=("Artist",), album="Album",
+                   release_date="1999-02-23", duration_ms=210000, track_id="t1"):
+    return {
+        "id": track_id,
+        "name": name,
+        "artists": [{"name": a} for a in artists],
+        "album": {"name": album, "release_date": release_date},
+        "duration_ms": duration_ms,
+    }
+
+
+def saved_page(tracks, next_url=None):
+    """Shape of GET /me/tracks: items are {"added_at":..., "track": {...}}."""
+    return {"items": [{"track": t} for t in tracks], "next": next_url}
+
+
+def test_get_playlist_tracks_detailed_shape():
+    client = _mock_real_client()
+    client._sp.playlist.return_value = {
+        "items": {"items": [{"item": detailed_track()}], "next": None}
+    }
+
+    rows = client.get_playlist_tracks_detailed("pl1")
+    assert len(rows) == 1
+    assert set(rows[0]) == DETAIL_KEYS
+    assert rows[0]["year"] == "1999"
+    assert rows[0]["duration_ms"] == 210000
+
+
+def test_get_liked_tracks_detailed_shape_matches_playlist_rows():
+    """Liked Songs rows must be interchangeable with playlist rows."""
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = saved_page([detailed_track()])
+
+    rows = client.get_liked_tracks_detailed()
+    assert len(rows) == 1
+    assert set(rows[0]) == DETAIL_KEYS
+    assert rows[0] == {
+        "artist": "Artist", "title": "Song", "album": "Album",
+        "year": "1999", "duration_ms": 210000,
+    }
+
+
+def test_get_liked_tracks_detailed_joins_multiple_artists():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = saved_page(
+        [detailed_track(artists=("KYLE", "Joshua Golden"))]
+    )
+
+    rows = client.get_liked_tracks_detailed()
+    assert rows[0]["artist"] == "KYLE & Joshua Golden"
+
+
+def test_get_liked_tracks_detailed_paginates():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.side_effect = [
+        saved_page([detailed_track(name="A", track_id="a")], next_url="http://next"),
+        saved_page([detailed_track(name="B", track_id="b")]),
+    ]
+
+    rows = client.get_liked_tracks_detailed()
+    assert [r["title"] for r in rows] == ["A", "B"]
+    assert client._sp.current_user_saved_tracks.call_count == 2
+
+
+def test_get_liked_tracks_detailed_preserves_order():
+    """Spotify returns Liked Songs most-recently-added first; keep that order."""
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = saved_page([
+        detailed_track(name="newest", track_id="1"),
+        detailed_track(name="older", track_id="2"),
+        detailed_track(name="oldest", track_id="3"),
+    ])
+
+    rows = client.get_liked_tracks_detailed()
+    assert [r["title"] for r in rows] == ["newest", "older", "oldest"]
+
+
+def test_get_liked_tracks_detailed_skips_malformed_items():
+    """Defensive: null items, null tracks and id-less tracks are dropped."""
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = {
+        "items": [
+            None,
+            {"track": None},
+            {"track": {"name": "no id", "artists": []}},
+            {"track": detailed_track(name="good", track_id="ok")},
+        ],
+        "next": None,
+    }
+
+    rows = client.get_liked_tracks_detailed()
+    assert [r["title"] for r in rows] == ["good"]
+
+
+def test_get_liked_tracks_detailed_missing_fields_do_not_raise():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = {
+        "items": [{"track": {"id": "x", "artists": []}}],
+        "next": None,
+    }
+
+    rows = client.get_liked_tracks_detailed()
+    assert rows == [{"artist": "Unknown", "title": "Unknown", "album": "",
+                     "year": "", "duration_ms": 0}]
+
+
+def test_get_liked_tracks_detailed_limit_caps_and_stops_paging():
+    """limit=2 must return 2 rows and not request a second page."""
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.side_effect = [
+        saved_page([detailed_track(name=n, track_id=n) for n in ("a", "b", "c")],
+                   next_url="http://next"),
+        saved_page([detailed_track(name="d", track_id="d")]),
+    ]
+
+    rows = client.get_liked_tracks_detailed(limit=2)
+    assert [r["title"] for r in rows] == ["a", "b"]
+    assert client._sp.current_user_saved_tracks.call_count == 1
+
+
+def test_get_liked_tracks_detailed_empty_library():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = {"items": [], "next": None}
+    assert client.get_liked_tracks_detailed() == []

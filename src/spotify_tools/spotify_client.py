@@ -38,6 +38,25 @@ def _get_track_obj(item: dict) -> dict | None:
     return item.get("item") or item.get("track")
 
 
+def _detail_row(track: dict) -> dict:
+    """Build the {artist, title, album, year, duration_ms} row for one track.
+
+    Shared by get_playlist_tracks_detailed and get_liked_tracks_detailed so the
+    two sources stay byte-identical in shape - AudioManager's Acquire tab feeds
+    either into the same table, so a drift between them would be a silent bug.
+    Every field is defaulted: Spotify omits fields on partial responses.
+    """
+    artists = track.get("artists", [])
+    release_date = (track.get("album") or {}).get("release_date", "")
+    return {
+        "artist": " & ".join(a["name"] for a in artists) if artists else "Unknown",
+        "title": track.get("name", "Unknown"),
+        "album": (track.get("album") or {}).get("name", ""),
+        "year": release_date[:4] if release_date else "",
+        "duration_ms": track.get("duration_ms", 0),
+    }
+
+
 def _retry_call(sp, method_name: str, *args, **kwargs):
     """Generic retry wrapper for any Spotify API call."""
     import requests.exceptions as req_exc
@@ -366,19 +385,7 @@ class RealSpotifyClient(SpotifyInterface):
                 track = _get_track_obj(item) if item else None
                 if not track or not track.get("id"):
                     continue
-                artists = track.get("artists", [])
-                artist = " & ".join(a["name"] for a in artists) if artists else "Unknown"
-                title = track.get("name", "Unknown")
-                album = track.get("album") or {}
-                release_date = album.get("release_date", "")
-                year = release_date[:4] if release_date else ""
-                tracks.append({
-                    "artist": artist,
-                    "title": title,
-                    "album": album.get("name", ""),
-                    "year": year,
-                    "duration_ms": track.get("duration_ms", 0),
-                })
+                tracks.append(_detail_row(track))
             if page.get("next"):
                 try:
                     page = self._sp.next(page)
@@ -389,4 +396,51 @@ class RealSpotifyClient(SpotifyInterface):
                 break
 
         logging.info(f"Read {len(tracks)} detailed tracks from playlist {playlist_id}")
+        return tracks
+
+    def get_liked_tracks_detailed(self, limit: int | None = None) -> list[dict]:
+        """Return {artist, title, album, year, duration_ms} for the user's Liked Songs.
+
+        The Liked Songs counterpart of get_playlist_tracks_detailed, returning
+        the identical row shape so a caller can swap sources without changing
+        anything downstream. This lets a queue be built straight from Liked
+        Songs, skipping the manual "add to an inbox playlist first" hop.
+
+        Spotify returns /me/tracks most-recently-added first; that order is
+        preserved, so limit=N gives the N newest likes. limit also stops the
+        pagination early rather than reading a whole large library.
+
+        Needs the user-library-read scope, already in SCOPES.
+        """
+        tracks: list[dict] = []
+        offset = 0
+        while True:
+            page_size = LIKED_BATCH_SIZE
+            if limit is not None:
+                remaining = limit - len(tracks)
+                if remaining <= 0:
+                    break
+                page_size = min(LIKED_BATCH_SIZE, remaining)
+
+            page = _retry_call(self._sp, "current_user_saved_tracks",
+                               limit=page_size, offset=offset)
+            items = page.get("items") or []
+            if not items:
+                break
+
+            for item in items:
+                track = item.get("track") if item else None
+                if not track or not track.get("id"):
+                    continue
+                tracks.append(_detail_row(track))
+                if limit is not None and len(tracks) >= limit:
+                    break
+
+            if limit is not None and len(tracks) >= limit:
+                break
+            if not page.get("next"):
+                break
+            offset += page_size
+
+        logging.info(f"Read {len(tracks)} detailed liked tracks")
         return tracks
