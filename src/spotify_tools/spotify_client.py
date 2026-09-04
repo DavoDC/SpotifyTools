@@ -13,14 +13,14 @@ from spotipy.oauth2 import SpotifyOAuth
 
 from spotify_tools.spotify_interface import SpotifyInterface, AddResult, RemoveResult
 from spotify_tools.matcher import clean_title, clean_artist, score_match
+from spotify_tools.paths import REPO_ROOT
 
 SCOPES = (
     "playlist-modify-public playlist-modify-private playlist-read-private "
     "playlist-read-collaborative user-library-read user-library-modify"
 )
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE_PATH = os.path.join(BASE_DIR, "data", ".cache")
+CACHE_PATH = os.path.join(REPO_ROOT, "data", ".cache")
 
 MAX_RETRY = 5
 BATCH_SIZE = 100

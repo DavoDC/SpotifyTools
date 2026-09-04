@@ -20,12 +20,12 @@ from spotify_tools.lockfile import LockFile
 from spotify_tools.reconciler import reconcile, MAX_SEARCH_ATTEMPTS
 from spotify_tools.report_generator import generate_report
 from spotify_tools.spotify_interface import SpotifyInterface
+from spotify_tools.paths import REPO_ROOT
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HISTORY_PATH = os.path.join(BASE_DIR, "data", "history.json")
-LOCK_PATH = os.path.join(BASE_DIR, "data", "run.lock")
-LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
-REPORT_DIR = os.path.join(BASE_DIR, "data", "reports")
+HISTORY_PATH = os.path.join(REPO_ROOT, "data", "history.json")
+LOCK_PATH = os.path.join(REPO_ROOT, "data", "run.lock")
+LOG_DIR = os.path.join(REPO_ROOT, "data", "logs")
+REPORT_DIR = os.path.join(REPO_ROOT, "data", "reports")
 
 ADDED = "added"
 UNMATCHED = "unmatched"
@@ -463,7 +463,7 @@ def main():
 
     if simulate:
         from spotify_tools.spotify_simulator import SimulatedSpotifyClient
-        fixture_path = os.path.join(BASE_DIR, "tests", "fixtures", "golden_spotify_responses.json")
+        fixture_path = os.path.join(REPO_ROOT, "tests", "fixtures", "golden_spotify_responses.json")
         client = SimulatedSpotifyClient(fixture_path=fixture_path)
     else:
         from spotify_tools.spotify_client import RealSpotifyClient
@@ -472,7 +472,7 @@ def main():
         except Exception as e:
             logging.error(f"Spotify auth failed: {e}")
             print(f"  ERROR: Could not connect to Spotify: {e}")
-            print(f"  Tip: Run 'python src/diagnose.py' for detailed auth diagnostics.")
+            print(f"  Tip: Run 'python -m spotify_tools.diagnose' for detailed auth diagnostics.")
             _wait_for_exit()
             return
 

@@ -4,8 +4,9 @@ import json
 import os
 import logging
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
+from spotify_tools.paths import REPO_ROOT
+
+CONFIG_PATH = os.path.join(REPO_ROOT, "config", "config.json")
 
 REQUIRED_KEYS = [
     "spotify_client_id",
