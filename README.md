@@ -90,6 +90,8 @@ SpotifyTools/
 │   └── requirements.txt
 ├── src/
 │   └── spotify_tools/
+│       ├── __init__.py
+│       ├── paths.py            # Single source of truth for REPO_ROOT
 │       ├── main.py             # CLI entrypoint + pipeline
 │       ├── config.py           # Config loading/validation
 │       ├── xml_parser.py       # AudioMirror XML reader
@@ -97,6 +99,9 @@ SpotifyTools/
 │       ├── spotify_interface.py    # ABC for API clients
 │       ├── spotify_client.py   # Real Spotify client
 │       ├── spotify_simulator.py    # Mock client for testing
+│       ├── acquire.py          # Liked Songs -> inbox playlist orchestration (used by AudioManager GUI)
+│       ├── open_playlist.py    # Open playlist tracks in local music manager
+│       ├── diagnose.py         # Auth diagnostic (python -m spotify_tools.diagnose)
 │       ├── history_store.py    # Safe JSON persistence
 │       ├── reconciler.py       # Deterministic sync algorithm
 │       ├── report_generator.py # Markdown reports
@@ -106,8 +111,7 @@ SpotifyTools/
 │   ├── golden/                 # End-to-end golden path tests
 │   └── fixtures/               # Test data
 ├── scripts/
-│   ├── run.bat / run.sh        # Launchers
-│   └── diagnose.py             # Auth diagnostic
+│   └── run.bat / run.sh        # Launchers
 ├── docs/
 │   └── spotify-api-reference.md
 └── data/                       # Gitignored runtime data
@@ -139,4 +143,4 @@ python -m pytest tests/ -v
 
 ## Development
 
-**Developed:** March 2026 · **Status:** Actively developed · **Tests:** 88
+**Developed:** March 2026 · **Status:** Actively developed · **Tests:** comprehensive as of 2026-09-04 (`python -m pytest tests/ -v`)

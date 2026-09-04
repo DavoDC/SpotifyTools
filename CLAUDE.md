@@ -1,10 +1,12 @@
 # SpotifyTools
 
-**Two tools in this repo:**
+**Tools in this repo:**
 - `src/spotify_tools/main.py` - batch sync tool. Reads AudioMirror XML library, syncs to a Spotify playlist. Run via `scripts/run.bat`.
 - `src/spotify_tools/open_playlist.py` - interactive browser. Opens Spotify playlist tracks in browser one by one for review/lookup.
+- `src/spotify_tools/acquire.py` - shared orchestration (Liked Songs -> inbox playlist). No CLI entrypoint of its own; imported directly by AudioManager's GUI ("Acquire" tab) as a sibling-directory Python import - see `docs/References/GUI-Architecture.md` in AudioManager for the boundary contract.
+- `src/spotify_tools/diagnose.py` - auth diagnostic, run via `python -m spotify_tools.diagnose` (also invoked silently on every `scripts/run.sh` launch).
 
-Both share `src/spotify_tools/spotify_client.py` as the Spotify API client.
+All share `src/spotify_tools/spotify_client.py` as the Spotify API client, built behind the `SpotifyInterface` ABC (`spotify_interface.py`) so `spotify_simulator.py`'s `SimulatedSpotifyClient` can stand in for tests.
 
 ## Mandatory Rules
 
@@ -20,18 +22,22 @@ Read and follow `GUIDELINES.md` before making any changes. It defines engineerin
 
 ```
 src/spotify_tools/
-  main.py               - CLI entrypoint, stage orchestration (sync tool)
-  open_playlist.py      - Interactive playlist browser
-  config.py             - Config loading/validation
-  xml_parser.py         - AudioMirror XML reader
-  matcher.py            - Track match scoring (EXACT/HIGH/LOW/NONE)
-  spotify_interface.py  - ABC for Spotify clients
-  spotify_client.py     - Real Spotify API client
-  spotify_simulator.py  - Mock client for testing
-  history_store.py      - Safe JSON persistence
-  reconciler.py         - Deterministic sync algorithm
-  report_generator.py   - Markdown reports
-  lockfile.py           - Concurrent run protection
+  __init__.py
+  paths.py               - Single source of truth for REPO_ROOT (env var SPOTIFY_TOOLS_ROOT, else derived)
+  main.py                - CLI entrypoint, stage orchestration (sync tool)
+  open_playlist.py       - Interactive playlist browser
+  acquire.py             - Liked Songs -> inbox playlist orchestration (used by AudioManager GUI)
+  diagnose.py            - Auth diagnostic (python -m spotify_tools.diagnose)
+  config.py              - Config loading/validation
+  xml_parser.py          - AudioMirror XML reader
+  matcher.py             - Track match scoring (EXACT/HIGH/LOW/NONE)
+  spotify_interface.py   - ABC for Spotify clients
+  spotify_client.py      - Real Spotify API client
+  spotify_simulator.py   - Mock client for testing
+  history_store.py       - Safe JSON persistence
+  reconciler.py          - Deterministic sync algorithm
+  report_generator.py    - Markdown reports
+  lockfile.py            - Concurrent run protection
 config/
   config.json           - Credentials + settings (gitignored)
   config.example.json
@@ -41,12 +47,13 @@ tests/
   fixtures/             - Test data
 scripts/
   run.bat / run.sh      - Launchers
-  diagnose.py           - Auth diagnostic
 data/
   history.json          - Persistent track decision history (gitignored)
   logs/                 - Run logs
   reports/              - Match reports
 ```
+
+All data/config paths (`CONFIG_PATH`, `CACHE_PATH`, `HISTORY_PATH`, etc.) resolve via `paths.REPO_ROOT` - never recompute a `BASE_DIR`/dirname chain in a new file; import `REPO_ROOT` from `paths.py` instead (see `paths.py`'s docstring for the 2026-09-04 off-by-one regression this prevents).
 
 ## Running
 
@@ -74,13 +81,9 @@ scripts/run.bat
 - Sort tracks by primary artist before sequential opening (`_open_interactively` does this) - groups same-artist tracks for efficient lookup workflow.
 - `logger.info` + `print` in same code block = double output on terminal (StreamHandler at INFO level). Use `logger.debug` for file-only, `print` for terminal-only.
 
-## Next Session - Blocking Bugs
+## Resolved (kept for history - do not re-open without new evidence)
 
-Two bugs block large-library (5000+ track) processing. Full details in `docs/IDEAS.md`.
+Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize`, `spotify_client.py` caps 429 retry sleep). See `docs/IDEAS.md` history for anything still open.
 
-**Bug #1 - 429 Rate Limit Hang (2026-03-28):** urllib3 has 429 in `status_forcelist`, retries silently with unbounded sleep. Fix: remove 429 from forcelist, cap retry sleep to 30s, increase SEARCH_DELAY_S from 0.1 to 0.5, add heartbeat logging before each API call.
-
-**Bug #2 - Unicode Matching:** `normalise()` doesn't strip diacritics so "JAY-Z" (with diacritic) matches as LOW. Fix: add `unicodedata.normalize('NFKD', s)` to `normalise()` in `matcher.py`.
-
-Review this log from the last rate-limit run before starting:
-`C:\Users\David\GitHubRepos\SpotifyTools\data\logs\terminal_28_03_2026_2.txt`
+- **429 Rate Limit Hang (2026-03-28):** urllib3 retried 429 with unbounded sleep. Fixed: 429 removed from forcelist, retry sleep capped at 30s (`MAX_RETRY_AFTER_S` in `spotify_client.py`), `SEARCH_DELAY_S` raised to 0.5.
+- **Unicode Matching:** `normalise()` didn't strip diacritics, so accented names could mismatch. Fixed: `matcher.py`'s `normalise()` runs `unicodedata.normalize('NFKD', s)` then strips combining characters.
