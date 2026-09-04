@@ -77,7 +77,11 @@ def _save_cache(playlist_id: str, tracks: list):
     logger.info(f"Cached {len(tracks)} tracks to {path}")
 
 
-_FEAT_RE = re.compile(r'\s*[\(\[]?(?:feat|ft)\.?\s+.*', re.IGNORECASE)
+# The \b is load-bearing: without it "ft"/"feat" matched inside ordinary words,
+# so "Left Behind" was truncated to "Le" and "Defeat Me" to "De", sending the
+# Deemix link off to search for nonsense. Only strip a feat/ft credit that
+# starts its own word. Verified against the live Deemix instance 2026-09-05.
+_FEAT_RE = re.compile(r'\s*[\(\[]?\b(?:feat|ft)\b\.?\s+.*', re.IGNORECASE)
 
 
 def _clean_for_search(text: str) -> str:
