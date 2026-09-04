@@ -13,15 +13,20 @@ import sys
 import webbrowser
 from urllib.parse import quote_plus
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, BASE_DIR)
+# This file lives at <repo>/src/spotify_tools/open_playlist.py, so one
+# dirname() from here always lands at <repo>/src - needed on sys.path so
+# `spotify_tools` is importable even when this script isn't launched from
+# inside src/.
+SRC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, SRC_DIR)
 
 from spotify_tools.config import load_config, CONFIG_PATH
 from spotify_tools.spotify_client import RealSpotifyClient
+from spotify_tools.paths import REPO_ROOT
 
 MANAGER_URL = "http://localhost:6595/search"
-CACHE_DIR = os.path.join(BASE_DIR, "data", "playlist_cache")
-LOG_FILE = os.path.join(BASE_DIR, "data", "logs", "open_playlist.log")
+CACHE_DIR = os.path.join(REPO_ROOT, "data", "playlist_cache")
+LOG_FILE = os.path.join(REPO_ROOT, "data", "logs", "open_playlist.log")
 
 
 def _setup_logging():

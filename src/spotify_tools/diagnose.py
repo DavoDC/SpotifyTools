@@ -8,14 +8,18 @@ import os
 import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# This file lives at <repo>/src/spotify_tools/diagnose.py, so one dirname()
+# from here always lands at <repo>/src - needed on sys.path so `spotify_tools`
+# is importable even when this script isn't launched from inside src/.
+SRC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, SRC_DIR)
 from spotify_tools.spotify_client import RealSpotifyClient
+from spotify_tools.paths import REPO_ROOT
 
 SILENT = "--silent" in sys.argv
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_PATH = os.path.join(BASE_DIR, "config", "config.json")
-LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
+CONFIG_PATH = os.path.join(REPO_ROOT, "config", "config.json")
+LOG_DIR = os.path.join(REPO_ROOT, "data", "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, f"diagnose_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 
@@ -38,77 +42,91 @@ def check(label, fn):
         return None
 
 
-out(f"=== Spotify Diagnostics ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ===")
+def _run_diagnostics():
+    """Runs the full live Spotify diagnostic (real network calls, real config).
 
-try:
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-except Exception as e:
-    out(f"FATAL: Could not load config: {e}")
-    sys.exit(1)
+    Deliberately gated behind `if __name__ == "__main__":` below - this file is
+    a script, not a safely importable module. Importing spotify_tools.diagnose
+    (e.g. from a test) must never trigger a live API call or an OAuth prompt;
+    that was possible before this guard existed (found 2026-09-04 while adding
+    a path-resolution regression test that imported this module and nearly hit
+    the real Spotify config/account).
+    """
+    out(f"=== Spotify Diagnostics ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ===")
 
-try:
-    client = RealSpotifyClient(config)
-    sp = client._sp
-except Exception as e:
-    out(f"FATAL: Could not create Spotify client: {e}")
-    sys.exit(1)
+    try:
+        with open(CONFIG_PATH) as f:
+            config = json.load(f)
+    except Exception as e:
+        out(f"FATAL: Could not load config: {e}")
+        sys.exit(1)
 
-playlist_id = config.get("spotify_playlist_id", "MISSING")
+    try:
+        client = RealSpotifyClient(config)
+        sp = client._sp
+    except Exception as e:
+        out(f"FATAL: Could not create Spotify client: {e}")
+        sys.exit(1)
 
-# 1. Auth
-out("\n[1] Auth check")
-user = check("current_user", lambda: sp.current_user()["display_name"] + " (" + sp.current_user()["id"] + ")")
+    playlist_id = config.get("spotify_playlist_id", "MISSING")
 
-# 2. Playlist owned by user?
-out("\n[2] Playlist ownership")
-def check_ownership():
-    playlists = sp.current_user_playlists(limit=50)
-    found = next((p for p in playlists["items"] if p["id"] == playlist_id), None)
-    if not found:
-        raise Exception(f"Playlist {playlist_id} not found in your playlists")
-    return f"Found: {found['name']}"
-check("ownership", check_ownership)
+    # 1. Auth
+    out("\n[1] Auth check")
+    check("current_user", lambda: sp.current_user()["display_name"] + " (" + sp.current_user()["id"] + ")")
 
-# 3. Playlist metadata
-out("\n[3] Playlist metadata (GET /playlists/{id})")
-def check_metadata():
-    p = sp.playlist(playlist_id)
-    keys = list(p.keys())
-    track_key = "items" if "items" in p else ("tracks" if "tracks" in p else "MISSING")
-    return f"name='{p.get('name')}' public={p.get('public')} track_key='{track_key}' top_level_keys={keys}"
-check("metadata", check_metadata)
+    # 2. Playlist owned by user?
+    out("\n[2] Playlist ownership")
+    def check_ownership():
+        playlists = sp.current_user_playlists(limit=50)
+        found = next((p for p in playlists["items"] if p["id"] == playlist_id), None)
+        if not found:
+            raise Exception(f"Playlist {playlist_id} not found in your playlists")
+        return f"Found: {found['name']}"
+    check("ownership", check_ownership)
 
-# 4. Read tracks via sp.playlist()
-out("\n[4] Read tracks via sp.playlist() (app method)")
-def check_read_tracks():
-    p = sp.playlist(playlist_id)
-    results = p.get("items") or p.get("tracks")
-    if results is None:
-        raise Exception(f"No items/tracks key found. Keys: {list(p.keys())}")
-    total = results.get("total", "?")
-    page = results.get("items", [])
-    sample = []
-    for item in page[:2]:
-        t = item.get("track")
-        if t:
-            sample.append(f"{t['artists'][0]['name']} - {t['name']}" if t.get("artists") else t.get("name", "?"))
-    return f"total={total} sample={sample}"
-check("read_tracks", check_read_tracks)
+    # 3. Playlist metadata
+    out("\n[3] Playlist metadata (GET /playlists/{id})")
+    def check_metadata():
+        p = sp.playlist(playlist_id)
+        keys = list(p.keys())
+        track_key = "items" if "items" in p else ("tracks" if "tracks" in p else "MISSING")
+        return f"name='{p.get('name')}' public={p.get('public')} track_key='{track_key}' top_level_keys={keys}"
+    check("metadata", check_metadata)
 
-# 5. Add endpoint reachable? (dry run — don't actually add anything)
-out("\n[5] Add endpoint check (GET playlist only, not writing)")
-def check_add_endpoint():
-    # Just verify the playlist object is writable by checking owner matches auth user
-    p = sp.playlist(playlist_id, fields="owner")
-    current = sp.current_user()["id"]
-    owner = p["owner"]["id"]
-    if owner != current:
-        raise Exception(f"Playlist owner ({owner}) != authenticated user ({current})")
-    return f"Owner matches authenticated user ({current})"
-check("add_endpoint", check_add_endpoint)
+    # 4. Read tracks via sp.playlist()
+    out("\n[4] Read tracks via sp.playlist() (app method)")
+    def check_read_tracks():
+        p = sp.playlist(playlist_id)
+        results = p.get("items") or p.get("tracks")
+        if results is None:
+            raise Exception(f"No items/tracks key found. Keys: {list(p.keys())}")
+        total = results.get("total", "?")
+        page = results.get("items", [])
+        sample = []
+        for item in page[:2]:
+            t = item.get("track")
+            if t:
+                sample.append(f"{t['artists'][0]['name']} - {t['name']}" if t.get("artists") else t.get("name", "?"))
+        return f"total={total} sample={sample}"
+    check("read_tracks", check_read_tracks)
 
-out(f"\nLog: {LOG_FILE}")
+    # 5. Add endpoint reachable? (dry run, don't actually add anything)
+    out("\n[5] Add endpoint check (GET playlist only, not writing)")
+    def check_add_endpoint():
+        # Just verify the playlist object is writable by checking owner matches auth user
+        p = sp.playlist(playlist_id, fields="owner")
+        current = sp.current_user()["id"]
+        owner = p["owner"]["id"]
+        if owner != current:
+            raise Exception(f"Playlist owner ({owner}) != authenticated user ({current})")
+        return f"Owner matches authenticated user ({current})"
+    check("add_endpoint", check_add_endpoint)
 
-if not SILENT:
-    input("\nPress Enter to exit...")
+    out(f"\nLog: {LOG_FILE}")
+
+    if not SILENT:
+        input("\nPress Enter to exit...")
+
+
+if __name__ == "__main__":
+    _run_diagnostics()
