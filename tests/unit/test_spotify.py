@@ -216,6 +216,89 @@ def test_simulator_get_or_create_playlist_reuses_existing():
     assert client.operations[-1]["created"] is False
 
 
+# ── simulator read/browse methods (the ABC's read side) ─────────────────────
+# Added 2026-09-05 with the four read methods moving onto SpotifyInterface;
+# before that they existed on RealSpotifyClient only, so AudioManager's fetch
+# paths could not be run against the simulator at all.
+
+DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms"}
+
+
+def test_interface_declares_every_public_real_client_method():
+    """Guard against a fifth undeclared method: anything public on
+    RealSpotifyClient must also be declared on SpotifyInterface, or a caller
+    typed as the interface is really depending on the concrete class."""
+    from spotify_tools.spotify_interface import SpotifyInterface
+    real_methods = {
+        name for name in vars(RealSpotifyClient)
+        if not name.startswith("_") and callable(vars(RealSpotifyClient)[name])
+    }
+    declared = {name for name in dir(SpotifyInterface) if not name.startswith("_")}
+    assert real_methods - declared == set()
+
+
+def test_simulator_implements_the_whole_interface():
+    """No abstract method left unimplemented - instantiating proves it."""
+    assert SimulatedSpotifyClient() is not None
+
+
+def test_simulator_playlist_tracks_detailed_rows_are_obviously_synthetic():
+    client = SimulatedSpotifyClient(fixture_data={"initial_playlist": ["spotify:track:aaa"]})
+    rows = client.get_playlist_tracks_detailed("pl1")
+    assert len(rows) == 1
+    assert set(rows[0]) == DETAIL_KEYS
+    assert rows[0]["artist"] == "Simulated Artist aaa"
+    assert rows[0]["title"] == "Simulated Track aaa"
+
+
+def test_simulator_playlist_tracks_detailed_reflects_added_tracks():
+    """Rows derive from live in-memory state, not a frozen fixture list."""
+    client = SimulatedSpotifyClient()
+    client.add_tracks("pl1", ["spotify:track:new1"])
+    assert client.get_playlist_tracks_detailed("pl1")[0]["title"] == "Simulated Track new1"
+
+
+def test_simulator_track_details_fixture_overrides_the_synthetic_row():
+    client = SimulatedSpotifyClient(fixture_data={
+        "initial_playlist": ["spotify:track:aaa"],
+        "track_details": {"spotify:track:aaa": {
+            "artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile",
+            "year": "2002", "duration_ms": 320000,
+        }},
+    })
+    assert client.get_playlist_tracks_detailed("pl1")[0]["title"] == "Lose Yourself"
+
+
+def test_simulator_playlist_tracks_returns_artist_title_tuples():
+    client = SimulatedSpotifyClient(fixture_data={"initial_playlist": ["spotify:track:aaa"]})
+    assert client.get_playlist_tracks("pl1") == [("Simulated Artist aaa", "Simulated Track aaa")]
+
+
+def test_simulator_liked_tracks_detailed_matches_playlist_row_shape():
+    client = SimulatedSpotifyClient(fixture_data={"initial_liked": ["spotify:track:bbb"]})
+    rows = client.get_liked_tracks_detailed()
+    assert set(rows[0]) == DETAIL_KEYS
+    assert rows[0]["artist"] == "Simulated Artist bbb"
+
+
+def test_simulator_liked_tracks_detailed_honours_limit():
+    client = SimulatedSpotifyClient(fixture_data={
+        "initial_liked": ["spotify:track:a", "spotify:track:b", "spotify:track:c"],
+    })
+    assert len(client.get_liked_tracks_detailed(limit=2)) == 2
+    assert client.get_liked_tracks_detailed(limit=0) == []
+
+
+def test_simulator_get_playlist_name_uses_fixture_then_created_then_fallback():
+    client = SimulatedSpotifyClient(fixture_data={"playlist_names": {"pl1": "My Mix"}})
+    assert client.get_playlist_name("pl1") == "My Mix"
+
+    created_id = client.get_or_create_playlist("AudioManager Inbox")
+    assert client.get_playlist_name(created_id) == "AudioManager Inbox"
+
+    assert client.get_playlist_name("pl_unknown") == "Simulated Playlist pl_unknown"
+
+
 # ── RealSpotifyClient (mocked spotipy) ──────────────────────────────────────
 # These test the class methods with a mocked spotipy.Spotify instance.
 

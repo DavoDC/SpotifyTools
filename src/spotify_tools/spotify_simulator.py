@@ -32,10 +32,22 @@ class SimulatedSpotifyClient(SpotifyInterface):
             ]
         },
         "initial_playlist": ["spotify:track:existing1"],
+        "initial_liked": ["spotify:track:liked1"],
+        "initial_playlists": {"AudioManager Inbox": "pl_existing"},
+        "playlist_names": {"pl_existing": "AudioManager Inbox"},
+        "track_details": {
+            "spotify:track:existing1": {
+                "artist": "Artist Name", "title": "Song Name",
+                "album": "Album Name", "year": "2020", "duration_ms": 210000
+            }
+        },
         "error_scenarios": {
             "Artist|ErrorTrack": "timeout"
         }
     }
+
+    track_details is optional: any URI without an entry gets an obviously
+    synthetic row derived from the URI itself (see _detail_row_for).
     """
 
     def __init__(self, fixture_path: Optional[str] = None, fixture_data: Optional[dict] = None):
@@ -159,6 +171,60 @@ class SimulatedSpotifyClient(SpotifyInterface):
         self.operations.append({"type": "get_playlist_by_name", "name": name, "created": True})
         logging.info(f"[SIM] get_or_create_playlist({name}) -> created {playlist_id}")
         return playlist_id
+
+    # ---------------------------------------------------------------- read/browse
+    #
+    # Counterparts of RealSpotifyClient's read methods, so a consumer holding
+    # a SpotifyInterface (AudioManager's Acquire tab) can run against the
+    # simulator instead of a live account. Rows are derived from the in-memory
+    # URI state so add_tracks/remove_tracks are reflected here too, and every
+    # value is unmistakably synthetic ("Simulated Artist aaa") - nothing here
+    # should ever be mistaken for real Spotify data in a screenshot or a log.
+    # A fixture may override any row via "track_details": {uri: {...}}.
+
+    def _detail_row_for(self, uri: str) -> dict:
+        override = (self._fixture.get("track_details") or {}).get(uri)
+        if override:
+            return dict(override)
+        suffix = uri.rsplit(":", 1)[-1] or "unknown"
+        return {
+            "artist": f"Simulated Artist {suffix}",
+            "title": f"Simulated Track {suffix}",
+            "album": f"Simulated Album {suffix}",
+            "year": "2000",
+            "duration_ms": 210000,
+        }
+
+    def get_playlist_tracks(self, playlist_id: str) -> list[tuple[str, str]]:
+        rows = self.get_playlist_tracks_detailed(playlist_id)
+        return [(r["artist"], r["title"]) for r in rows]
+
+    def get_playlist_name(self, playlist_id: str) -> str:
+        names = self._fixture.get("playlist_names") or {}
+        if playlist_id in names:
+            name = names[playlist_id]
+        else:
+            # get_or_create_playlist() records name -> id; reverse it so a
+            # playlist the simulator itself created reports the name it was
+            # created under.
+            created = {pid: pname for pname, pid in self._playlists.items()}
+            name = created.get(playlist_id, f"Simulated Playlist {playlist_id}")
+        self.operations.append({"type": "get_playlist_name", "playlist_id": playlist_id, "name": name})
+        logging.info(f"[SIM] get_playlist_name({playlist_id}) -> {name}")
+        return name
+
+    def get_playlist_tracks_detailed(self, playlist_id: str) -> list[dict]:
+        rows = [self._detail_row_for(uri) for uri in self._playlist]
+        self.operations.append({"type": "get_playlist_detailed", "count": len(rows)})
+        logging.info(f"[SIM] get_playlist_tracks_detailed({playlist_id}) -> {len(rows)} rows")
+        return rows
+
+    def get_liked_tracks_detailed(self, limit: int | None = None) -> list[dict]:
+        uris = self._liked if limit is None else self._liked[:max(limit, 0)]
+        rows = [self._detail_row_for(uri) for uri in uris]
+        self.operations.append({"type": "get_liked_detailed", "count": len(rows)})
+        logging.info(f"[SIM] get_liked_tracks_detailed(limit={limit}) -> {len(rows)} rows")
+        return rows
 
     def find_duplicates(self, playlist_id: str) -> dict[str, int]:
         seen: set[str] = set()

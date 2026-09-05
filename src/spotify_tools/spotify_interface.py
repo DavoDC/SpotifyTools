@@ -81,3 +81,35 @@ class SpotifyInterface(ABC):
         """Return the id of the current user's playlist with this name,
         creating a new private playlist if none exists yet."""
         ...
+
+    # ---------------------------------------------------------------- read/browse
+    #
+    # These four are the read side consumed by AudioManager's Acquire tab.
+    # They lived on RealSpotifyClient only until 2026-09-05, which meant a
+    # caller holding a SpotifyInterface was really depending on the concrete
+    # class and could not be run against the simulator. Any new method that
+    # a consumer calls belongs HERE, on the ABC, with a simulator
+    # implementation alongside it - the class docstring's "no module except
+    # implementations of this interface may call the Spotify API directly"
+    # is only true if the interface actually declares everything they call.
+
+    @abstractmethod
+    def get_playlist_tracks(self, playlist_id: str) -> list[tuple[str, str]]:
+        """Return (artist, title) for every track in a playlist."""
+        ...
+
+    @abstractmethod
+    def get_playlist_name(self, playlist_id: str) -> str:
+        """Return a playlist's display name (empty string if unknown)."""
+        ...
+
+    @abstractmethod
+    def get_playlist_tracks_detailed(self, playlist_id: str) -> list[dict]:
+        """Return {artist, title, album, year, duration_ms} per playlist track."""
+        ...
+
+    @abstractmethod
+    def get_liked_tracks_detailed(self, limit: int | None = None) -> list[dict]:
+        """Return {artist, title, album, year, duration_ms} for Liked Songs,
+        most-recently-added first. limit caps the read (and the pagination)."""
+        ...
