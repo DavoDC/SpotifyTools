@@ -172,7 +172,7 @@ def test_build_deemix_url_no_network_call():
 # ── feat/ft stripping must not eat words that merely CONTAIN "ft"/"feat" ──
 # Regression: `_FEAT_RE` had no word boundary, so "Left Behind" was truncated to
 # "Le" and the Deemix link searched for garbage. Confirmed against the live
-# Deemix instance on 2026-09-05 - see docs/IDEAS.md.
+# Deemix instance on 2026-09-05.
 
 @pytest.mark.parametrize("artist,title,expected_term", [
     ("Linkin Park", "Left Behind", "Linkin+Park+Left+Behind"),

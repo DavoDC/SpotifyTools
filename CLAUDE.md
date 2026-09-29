@@ -83,7 +83,7 @@ scripts/run.bat
 
 ## Resolved (kept for history - do not re-open without new evidence)
 
-Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize`, `spotify_client.py` caps 429 retry sleep). See `docs/IDEAS.md` history for anything still open.
+Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize`, `spotify_client.py` caps 429 retry sleep). Project planning is kept privately by the maintainer.
 
 - **429 Rate Limit Hang (2026-03-28):** urllib3 retried 429 with unbounded sleep. Fixed: 429 removed from forcelist, retry sleep capped at 30s (`MAX_RETRY_AFTER_S` in `spotify_client.py`), `SEARCH_DELAY_S` raised to 0.5.
 - **Unicode Matching:** `normalise()` didn't strip diacritics, so accented names could mismatch. Fixed: `matcher.py`'s `normalise()` runs `unicodedata.normalize('NFKD', s)` then strips combining characters.
