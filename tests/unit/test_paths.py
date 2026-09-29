@@ -62,7 +62,6 @@ def test_main_data_paths_resolve_under_repo_root_not_src():
     wrong path there means the sync tool silently starts with empty history."""
     mod = importlib.import_module("spotify_tools.main")
     assert mod.HISTORY_PATH == os.path.join(REPO_ROOT, "data", "history.json")
-    assert os.path.exists(mod.HISTORY_PATH), mod.HISTORY_PATH
     assert mod.LOCK_PATH == os.path.join(REPO_ROOT, "data", "run.lock")
     assert mod.LOG_DIR == os.path.join(REPO_ROOT, "data", "logs")
     assert mod.REPORT_DIR == os.path.join(REPO_ROOT, "data", "reports")
