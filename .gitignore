@@ -5,3 +5,8 @@ data/.cache
 data/run.lock
 *.log
 /data/playlist_cache
+
+# sync state, run logs and reports are private; never commit
+/data/history.json*
+/data/logs/
+/data/reports/
