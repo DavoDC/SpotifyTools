@@ -87,3 +87,7 @@ Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize
 
 - **429 Rate Limit Hang (2026-03-28):** urllib3 retried 429 with unbounded sleep. Fixed: 429 removed from forcelist, retry sleep capped at 30s (`MAX_RETRY_AFTER_S` in `spotify_client.py`), `SEARCH_DELAY_S` raised to 0.5.
 - **Unicode Matching:** `normalise()` didn't strip diacritics, so accented names could mismatch. Fixed: `matcher.py`'s `normalise()` runs `unicodedata.normalize('NFKD', s)` then strips combining characters.
+
+## Claude instructions
+
+Stable public surface for consumers (the consumer): `spotify_tools.API_VERSION` (int, bump on breaking change), `spotify_tools.build_client(config=None)` (wraps `RealSpotifyClient`, `None` loads the default config), and `open_playlist.build_search_url` (public alias of `_build_search_url`; the underscore name still works). Plus the already-public `config.CONFIG_PATH`, `config.load_config`, `matcher.clean_artist/clean_title/normalise`, `open_playlist.extract_playlist_id`, `acquire.move_liked_to_playlist`, `spotify_simulator.SimulatedSpotifyClient`. Consumers must import only these, never underscore names.
