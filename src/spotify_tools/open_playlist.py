@@ -98,6 +98,9 @@ def _build_search_url(artist: str, title: str) -> str:
     return f"{SEARCH_BASE}?term={quote_plus(query)}"
 
 
+build_search_url = _build_search_url  # public alias; _build_search_url kept for compatibility
+
+
 def _open_search(artist: str, title: str):
     webbrowser.open(_build_search_url(artist, title))
 

@@ -133,6 +133,10 @@ SpotifyTools/
 
 ---
 
+## Library use
+
+Other apps can import a small stable surface: `spotify_tools.API_VERSION`, `spotify_tools.build_client(config=None)` for an authenticated client, and `open_playlist.build_search_url`.
+
 ## Running tests
 
 ```bash
