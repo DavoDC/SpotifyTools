@@ -6,6 +6,8 @@ This repo is the **Spotify gateway module**, a reusable helper like ytkit (YouTu
 
 Scope: this repo owns everything that talks to or reasons about Spotify. No UI, no file tagging, no library routing; those belong to the consuming apps. (The wider multi-repo split is tracked separately in elsewhere, not here.)
 
+Verdict (design review 2026-11-07, binding): never in this repo: UI, file tagging or routing, external tool integration, consumer-specific defaults (the inbox playlist default is the neutral "Inbox"; consumers pass their own name), consumer names. Planned additions, all additive so `API_VERSION` stays 1: `matcher.primary_artist`, `matcher.title_key`, `matcher.search_query`, `open_playlist.parse_playlist_id`, `build_search_url(artist, title, base_url)`, one `PUBLIC_API` tuple that README, `__init__` docstring and the list below must match. `build_search_url` stays as a deprecated alias; removing it bumps `API_VERSION` to 2. The sync CLI input becomes a generic track list (`library_path` setting, `audiomirror_path` kept as legacy alias) with the AudioMirror XML reader as one adapter. `tests/unit/test_public_naming.py` guards the naming rule; keep it green.
+
 Rules that follow: a Spotify feature needed by a consumer is added HERE with a stable public name, never duplicated in the consumer. Library-file logic (tags, routing, analysis) never goes into this repo. Public docs (README, code, commits) never name unreleased repos, private paths or other consumers; consumers are described generically ("other projects"). A breaking change to the public surface bumps `API_VERSION`.
 
 **Tools in this repo:**
