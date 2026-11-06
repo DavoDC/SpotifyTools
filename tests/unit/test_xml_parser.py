@@ -78,7 +78,7 @@ def test_parse_track_missing_artists_returns_empty():
     assert track["all_artists"] == []
 
 
-# ── parse_library() — tests against real fixture files on disk ────────────────
+# ── parse_library() - tests against real fixture files on disk ────────────────
 
 def test_parse_library_track_count():
     # 4 valid XML files + 1 broken = 4 tracks returned
@@ -112,7 +112,7 @@ def test_parse_library_missing_year_is_none():
     assert no_year["year"] is None
 
 def test_parse_library_skips_broken_xml():
-    # broken.xml must not crash the run — should just be skipped
+    # broken.xml must not crash the run - should just be skipped
     tracks = parse_library(FIXTURES_DIR)
     source_files = [t["source_file"] for t in tracks]
     assert "broken.xml" not in source_files

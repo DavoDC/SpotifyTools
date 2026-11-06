@@ -1,4 +1,4 @@
-"""Real Spotify API client — all network access isolated here.
+"""Real Spotify API client - all network access isolated here.
 
 Implements SpotifyInterface using spotipy. No other module may call spotipy directly.
 Handles retries, rate limits, pagination, response format variations, batch splitting.
@@ -121,7 +121,7 @@ class RealSpotifyClient(SpotifyInterface):
         # retries=0 disables urllib3's internal retry/sleep logic entirely.
         # urllib3 retries 429 on ANY response with a Retry-After header (via
         # RETRY_AFTER_STATUS_CODES), sleeping for the UNCAPPED Retry-After
-        # value before our _retry_call ever runs — causing the hang at ~500 tracks.
+        # value before our _retry_call ever runs - causing the hang at ~500 tracks.
         # _retry_call handles all retries (429, 5xx, timeout) with a 30s cap.
         self._sp = spotipy.Spotify(
             auth_manager=auth,

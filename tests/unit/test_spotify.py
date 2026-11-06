@@ -1,6 +1,6 @@
 """
 Tests for src/spotify_client.py (RealSpotifyClient) and src/spotify_simulator.py.
-All Spotify API calls are mocked — no real network access.
+All Spotify API calls are mocked - no real network access.
 
 IMPORTANT: Spotify API returns playlist items under an "item" key (as of 2026),
 NOT "track". Tests must use the current format.

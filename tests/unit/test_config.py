@@ -1,4 +1,4 @@
-"""Tests for src/config.py — config loading and validation."""
+"""Tests for src/config.py - config loading and validation."""
 
 import json
 import os

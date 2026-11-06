@@ -1,4 +1,4 @@
-"""Tests for src/reconciler.py — deterministic playlist reconciliation."""
+"""Tests for src/reconciler.py - deterministic playlist reconciliation."""
 
 from spotify_tools.reconciler import reconcile, ReconciliationPlan, MAX_SEARCH_ATTEMPTS
 
@@ -15,7 +15,7 @@ def _track(artist="Artist", title="Song", album="Album"):
 def _history_entry(state="added", uri="spotify:track:abc", attempts=1, confidence="exact"):
     return {
         "state": state,
-        "display": "Artist — Song",
+        "display": "Artist - Song",
         "spotify_uri": uri,
         "spotify_id": uri.split(":")[-1] if uri else None,
         "match_confidence": confidence,
@@ -77,7 +77,7 @@ def test_history_added_but_missing_from_playlist_triggers_recovery():
     history = _history({
         "Eminem|Lose Yourself": _history_entry(state="added", uri="spotify:track:abc")
     })
-    playlist = set()  # empty — track missing
+    playlist = set()  # empty - track missing
 
     plan = reconcile(tracks, history, playlist, _key)
 

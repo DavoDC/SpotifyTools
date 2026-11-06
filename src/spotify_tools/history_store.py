@@ -6,7 +6,7 @@ History format (v2):
     "tracks": {
         "Artist|Title": {
             "state": "added" | "unmatched" | "custom" | "exhausted",
-            "display": "Artist — Title",
+            "display": "Artist - Title",
             "spotify_uri": "spotify:track:xxx" | null,
             "spotify_id": "xxx" | null,
             "match_confidence": "exact" | "high" | null,
@@ -147,7 +147,7 @@ class HistoryStore:
 
             tracks[key] = {
                 "state": state,
-                "display": entry.get("track", key.replace("|", " — ")),
+                "display": entry.get("track", key.replace("|", " - ")),
                 "spotify_uri": spotify_uri,
                 "spotify_id": spotify_id,
                 "match_confidence": None,  # unknown for migrated entries

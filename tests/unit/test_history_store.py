@@ -1,4 +1,4 @@
-"""Tests for src/history_store.py — atomic writes, backup, migration, schema."""
+"""Tests for src/history_store.py - atomic writes, backup, migration, schema."""
 
 import json
 import os
@@ -22,13 +22,13 @@ def _v1_history():
     return {
         "Eminem|Lose Yourself": {
             "state": "added",
-            "track": "Eminem — Lose Yourself",
+            "track": "Eminem - Lose Yourself",
             "spotify_uri": "spotify:track:abc123",
             "decided_at": "2026-03-10T15:38:48.159954",
         },
         "Unknown|Ghost": {
             "state": "unmatched",
-            "track": "Unknown — Ghost",
+            "track": "Unknown - Ghost",
             "spotify_uri": None,
             "decided_at": "2026-03-10T16:00:00.000000",
         },
@@ -41,7 +41,7 @@ def _v2_history(tracks=None):
         tracks = {
             "Eminem|Lose Yourself": {
                 "state": "added",
-                "display": "Eminem — Lose Yourself",
+                "display": "Eminem - Lose Yourself",
                 "spotify_uri": "spotify:track:abc123",
                 "spotify_id": "abc123",
                 "match_confidence": "exact",
@@ -91,7 +91,7 @@ def test_load_migrates_v1_to_v2():
     assert entry["spotify_uri"] == "spotify:track:abc123"
     assert entry["spotify_id"] == "abc123"
     assert entry["search_attempts"] == 1
-    assert entry["display"] == "Eminem — Lose Yourself"
+    assert entry["display"] == "Eminem - Lose Yourself"
 
 
 def test_load_migrates_v1_unmatched():
@@ -219,7 +219,7 @@ def test_set_track_creates_new_entry():
 
     store.set_track(history, "Artist|Title",
                     state="added",
-                    display="Artist — Title",
+                    display="Artist - Title",
                     spotify_uri="spotify:track:xyz",
                     match_confidence="exact")
 
@@ -234,7 +234,7 @@ def test_set_track_increments_search_attempts():
     history = _v2_history(tracks={
         "A|B": {
             "state": "unmatched",
-            "display": "A — B",
+            "display": "A - B",
             "spotify_uri": None,
             "spotify_id": None,
             "match_confidence": None,
@@ -248,7 +248,7 @@ def test_set_track_increments_search_attempts():
 
     store.set_track(history, "A|B",
                     state="unmatched",
-                    display="A — B")
+                    display="A - B")
 
     assert history["tracks"]["A|B"]["search_attempts"] == 4
 
@@ -257,7 +257,7 @@ def test_set_track_preserves_first_seen():
     history = _v2_history(tracks={
         "A|B": {
             "state": "unmatched",
-            "display": "A — B",
+            "display": "A - B",
             "spotify_uri": None,
             "spotify_id": None,
             "match_confidence": None,
@@ -271,7 +271,7 @@ def test_set_track_preserves_first_seen():
 
     store.set_track(history, "A|B",
                     state="added",
-                    display="A — B",
+                    display="A - B",
                     spotify_uri="spotify:track:xyz",
                     match_confidence="high")
 
@@ -284,7 +284,7 @@ def test_set_track_extracts_spotify_id():
 
     store.set_track(history, "A|B",
                     state="added",
-                    display="A — B",
+                    display="A - B",
                     spotify_uri="spotify:track:abc123")
 
     assert history["tracks"]["A|B"]["spotify_id"] == "abc123"
@@ -296,7 +296,7 @@ def test_set_track_null_uri_gives_null_id():
 
     store.set_track(history, "A|B",
                     state="unmatched",
-                    display="A — B",
+                    display="A - B",
                     spotify_uri=None)
 
     assert history["tracks"]["A|B"]["spotify_id"] is None

@@ -3,7 +3,7 @@
 Computes the diff between desired state (XML library + history) and current state
 (live Spotify playlist), then produces an ordered list of operations.
 
-This is the core algorithm. It never calls Spotify directly — it only computes
+This is the core algorithm. It never calls Spotify directly - it only computes
 what SHOULD happen. The caller (main.py) executes the plan.
 """
 
@@ -55,7 +55,7 @@ def reconcile(library_tracks: list[dict],
         entry = tracks_data.get(key)
 
         if entry is None:
-            # Brand new track — needs search
+            # Brand new track - needs search
             plan.to_search.append(track)
             continue
 
@@ -76,7 +76,7 @@ def reconcile(library_tracks: list[dict],
             if uri in playlist_uris:
                 plan.skipped_synced += 1
             else:
-                # In history but missing from playlist — recovery
+                # In history but missing from playlist - recovery
                 plan.to_recover.append({
                     "key": key,
                     "uri": uri,
@@ -87,17 +87,17 @@ def reconcile(library_tracks: list[dict],
         if state == "unmatched":
             attempts = entry.get("search_attempts", 0)
             if attempts >= MAX_SEARCH_ATTEMPTS:
-                # Mark as exhausted — will be updated by caller
+                # Mark as exhausted - will be updated by caller
                 plan.skipped_exhausted += 1
                 continue
             # Retry search
             plan.to_search.append(track)
             continue
 
-        # Unknown state — treat as needing search
+        # Unknown state - treat as needing search
         plan.to_search.append(track)
 
-    # Tracks in playlist that are NOT in the desired set — should be removed.
+    # Tracks in playlist that are NOT in the desired set - should be removed.
     # "desired set" = all URIs from history-added tracks that are still in the XML library.
     # If a track was removed from XML, its URI won't be in desired_uris → removal candidate.
     # Also catches accidental additions.

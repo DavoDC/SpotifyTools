@@ -53,12 +53,12 @@ def setup_logging(log_dir: str = LOG_DIR):
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 
-    # File handler: DEBUG level — captures EVERYTHING for post-mortem
+    # File handler: DEBUG level - captures EVERYTHING for post-mortem
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
 
-    # Terminal handler: INFO level — cleaner output, skip per-track search detail
+    # Terminal handler: INFO level - cleaner output, skip per-track search detail
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
@@ -209,7 +209,7 @@ def run_pipeline(client: SpotifyInterface,
     error_count = 0
     low_confidence = []
     to_add_uris = []
-    pending_tracks = {}  # uri -> (key, label, confidence, source_file) — awaiting Spotify confirmation
+    pending_tracks = {}  # uri -> (key, label, confidence, source_file) - awaiting Spotify confirmation
     history_dirty = False
     search_start = datetime.now()
 
@@ -250,7 +250,7 @@ def run_pipeline(client: SpotifyInterface,
             if confidence in ("exact", "high"):
                 uri = best["uri"]
                 if uri in playlist_uris:
-                    # Already confirmed in playlist — mark added immediately
+                    # Already confirmed in playlist - mark added immediately
                     history_store.set_track(history, key,
                                             state=ADDED,
                                             display=label,
@@ -259,7 +259,7 @@ def run_pipeline(client: SpotifyInterface,
                                             source_file=t.get("source_file"))
                     logging.debug(f"[DECISION] {label} -> {confidence.upper()} (already in playlist)")
                 else:
-                    # Queue for upload — mark added only after Spotify confirms
+                    # Queue for upload - mark added only after Spotify confirms
                     to_add_uris.append(uri)
                     pending_tracks[uri] = (key, label, confidence, t.get("source_file"))
                     logging.debug(f"[DECISION] {label} -> {confidence.upper()} queued for upload ({len(to_add_uris)} pending)")
@@ -361,7 +361,7 @@ def run_pipeline(client: SpotifyInterface,
 
     # Final history save
     if history_dirty or pending_tracks:
-        # Any remaining pending_tracks had no upload result — mark unmatched for safety
+        # Any remaining pending_tracks had no upload result - mark unmatched for safety
         for uri, (pk, pl, _, ps) in pending_tracks.items():
             history_store.set_track(history, pk, state=UNMATCHED,
                                     display=pl, source_file=ps)

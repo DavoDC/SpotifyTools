@@ -21,7 +21,7 @@ def test_clean_title_removes_feat_no_dot():
     assert clean_title("Song feat Artist") == "Song"
 
 def test_clean_title_only_feat_content():
-    # Edge case: title IS just "feat. X" — should return empty string, not crash
+    # Edge case: title IS just "feat. X" - should return empty string, not crash
     result = clean_title("feat. Someone")
     assert isinstance(result, str)
 
@@ -72,7 +72,7 @@ def test_score_match_none():
     assert score_match(track, result) == "none"
 
 def test_score_match_high_via_normalise():
-    # "The Eminem" vs "Eminem" — normalise strips "the", should still match
+    # "The Eminem" vs "Eminem" - normalise strips "the", should still match
     track = {"primary_artist": "The Eminem", "title": "Lose Yourself", "album": ""}
     result = {"artists": [{"name": "Eminem"}], "name": "Lose Yourself", "album": {"name": ""}}
     assert score_match(track, result) in ("high", "exact")
@@ -135,27 +135,27 @@ def test_clean_title_removes_with_artist():
     assert clean_title("Song Title (with Snoop Dogg)") == "Song Title"
 
 def test_clean_title_preserves_meaningful_parens():
-    # "(Part 2)" is meaningful, not a tag — should be preserved
+    # "(Part 2)" is meaningful, not a tag - should be preserved
     assert "Part 2" in clean_title("I Need a Girl (Part 2)")
 
 
 # ── score_match: clean_title applied to both sides ──────────────────────────
 
 def test_score_match_cleans_spotify_feat():
-    """Spotify result has '(feat. ...)' that local title doesn't — should still match."""
+    """Spotify result has '(feat. ...)' that local title doesn't - should still match."""
     track = {"primary_artist": "Calvin Harris", "title": "Outside", "album": "Motion"}
     result = {"artists": [{"name": "Calvin Harris"}], "name": "Outside (feat. Ellie Goulding)", "album": {"name": "Motion"}}
     assert score_match(track, result) == "exact"
 
 def test_score_match_cleans_spotify_with_artist():
-    """Spotify result has '(with ...)' suffix — should match local title without it."""
+    """Spotify result has '(with ...)' suffix - should match local title without it."""
     track = {"primary_artist": "Eminem", "title": "From The D 2 The LBC", "album": ""}
     result = {"artists": [{"name": "Eminem"}], "name": "From The D 2 The LBC (with Snoop Dogg)", "album": {"name": ""}}
     # Both sides clean to same title, albums both empty → exact
     assert score_match(track, result) == "exact"
 
 def test_score_match_cleans_local_album_version():
-    """Local title has '(Album Version Explicit)' — should match Spotify's clean title."""
+    """Local title has '(Album Version Explicit)' - should match Spotify's clean title."""
     track = {"primary_artist": "Bone Thugs-N-Harmony", "title": "Never Forget Me (Album Version Explicit)", "album": ""}
     result = {"artists": [{"name": "Bone Thugs-N-Harmony"}], "name": "Never Forget Me", "album": {"name": ""}}
     assert score_match(track, result) in ("exact", "high")
@@ -167,7 +167,7 @@ def test_normalise_strips_diacritics_umlaut():
     assert normalise("café") == "cafe"
 
 def test_normalise_strips_diacritics_y_diaeresis():
-    # Ÿ (U+0178) → y — the JAY-Z / JAŸ-Z case; hyphen stripped as punctuation → "jayz"
+    # Ÿ (U+0178) → y - the JAY-Z / JAŸ-Z case; hyphen stripped as punctuation → "jayz"
     assert normalise("JAŸ-Z") == "jayz"
 
 def test_normalise_diacritics_match():
@@ -177,7 +177,7 @@ def test_normalise_diacritics_match():
 # ── score_match: diacritic artist names ─────────────────────────────────────
 
 def test_score_match_jayz_diacritic_artist():
-    """Spotify returns JAŸ-Z (U+0178) instead of JAY-Z — should still match HIGH or EXACT."""
+    """Spotify returns JAŸ-Z (U+0178) instead of JAY-Z - should still match HIGH or EXACT."""
     track = {"primary_artist": "JAY-Z", "title": "Empire State of Mind", "album": "The Blueprint 3"}
     result = {
         "artists": [{"name": "JAŸ-Z"}],

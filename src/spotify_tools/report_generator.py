@@ -1,4 +1,4 @@
-"""Report generation — human-readable markdown reports of sync results."""
+"""Report generation - human-readable markdown reports of sync results."""
 
 import os
 from datetime import datetime
@@ -19,7 +19,7 @@ def generate_report(report_dir: str,
         report_dir: directory to write the report to
         history: full history dict (v2 format)
         low_confidence: list of {"track": ..., "matched": ..., "confidence": "low"}
-        recovered: list of {"key": ..., "uri": ..., "display": ...} — tracks re-added
+        recovered: list of {"key": ..., "uri": ..., "display": ...} - tracks re-added
         removed_uris: URIs removed from playlist this run
         total_tracks: total tracks in XML library
 
@@ -59,13 +59,13 @@ def generate_report(report_dir: str,
         f"",
     ]
 
-    # Recovered tracks (surprising — flagged per user request)
+    # Recovered tracks (surprising - flagged per user request)
     if recovered:
         lines += [
             f"## Recovered Tracks ({len(recovered)})",
             f"",
             f"These tracks were in history as 'added' but MISSING from the playlist.",
-            f"They were re-added automatically. This is unexpected — investigate if recurring.",
+            f"They were re-added automatically. This is unexpected - investigate if recurring.",
             f"",
         ]
         for r in recovered:
@@ -89,14 +89,14 @@ def generate_report(report_dir: str,
     lines += [
         f"## Unmatched Tracks ({len(all_unmatched)})",
         f"",
-        f"These could not be found on Spotify. Check manually — ",
+        f"These could not be found on Spotify. Check manually - ",
         f"they may exist under a different name, or not be on Spotify at all.",
         f"",
     ]
     if all_unmatched:
         lines += [f"- {t}" for t in all_unmatched]
     else:
-        lines.append("_None — all tracks matched!_")
+        lines.append("_None - all tracks matched!_")
 
     # Exhausted
     if all_exhausted:
@@ -110,10 +110,10 @@ def generate_report(report_dir: str,
         ]
         lines += [f"- {t}" for t in all_exhausted]
 
-    # Low confidence — review list
+    # Low confidence - review list
     lines += [
         f"",
-        f"## Low Confidence — Not Added ({len(low_confidence)})",
+        f"## Low Confidence - Not Added ({len(low_confidence)})",
         f"",
         f"A partial Spotify match was found but confidence was too low to add automatically.",
         f"Check each one manually and add to the playlist if correct.",

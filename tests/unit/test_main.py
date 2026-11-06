@@ -1,5 +1,5 @@
 """
-Tests for src/main.py — entry point wiring and helpers.
+Tests for src/main.py - entry point wiring and helpers.
 Tests for extracted modules (config, report_generator) are in their own files.
 """
 import importlib

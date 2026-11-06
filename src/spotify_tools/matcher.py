@@ -32,7 +32,7 @@ def clean_title(title: str) -> str:
 
 
 def clean_artist(artist: str) -> str:
-    """Clean artist name for search queries — strip feat/ft suffixes.
+    """Clean artist name for search queries - strip feat/ft suffixes.
 
     Only removes feat./ft. patterns. Does NOT strip "&" or "and" because
     those are often part of legitimate band names (Simon & Garfunkel,

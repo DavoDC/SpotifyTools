@@ -1,4 +1,4 @@
-"""Tests for src/lockfile.py — concurrent run protection."""
+"""Tests for src/lockfile.py - concurrent run protection."""
 
 import os
 import tempfile

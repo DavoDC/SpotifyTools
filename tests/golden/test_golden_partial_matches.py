@@ -47,7 +47,7 @@ def _run(tmpdir, client):
 # ── LOW confidence handling ──────────────────────────────────────────────────
 
 def test_low_confidence_tracks_not_in_playlist():
-    """Led Zeppelin and Eagles have LOW confidence — must NOT be in playlist."""
+    """Led Zeppelin and Eagles have LOW confidence - must NOT be in playlist."""
     fixture = _load_fixture()
     with tempfile.TemporaryDirectory() as d:
         client = SimulatedSpotifyClient(fixture_data=fixture)
@@ -102,7 +102,7 @@ def test_unmatched_tracks_retried_on_second_run():
         summary1 = _run(d, client)
         assert summary1["unmatched"] == 5  # 2 low + 3 none
 
-        # Run 2 — unmatched should be retried
+        # Run 2 - unmatched should be retried
         client.operations.clear()
         summary2 = _run(d, client)
 
@@ -136,7 +136,7 @@ def test_exhausted_tracks_not_retried():
         assert rare.get("state") == "exhausted", f"Expected exhausted, got {rare.get('state')}"
         assert demo.get("state") == "exhausted", f"Expected exhausted, got {demo.get('state')}"
 
-        # Run once more — exhausted tracks should NOT be searched
+        # Run once more - exhausted tracks should NOT be searched
         client.operations.clear()
         _run(d, client)
 
