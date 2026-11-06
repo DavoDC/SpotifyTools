@@ -39,7 +39,12 @@ def _get_track_obj(item: dict) -> dict | None:
 
 
 def _detail_row(track: dict) -> dict:
-    """Build the {artist, title, album, year, duration_ms} row for one track.
+    """Build the row for one track.
+
+    Keys: artist, title, album, year, duration_ms, then id, uri, url, isrc,
+    popularity, explicit, album_id, artist_ids, preview_url. The extra keys
+    arrive on the same playlist/liked page, so keeping them costs no API call;
+    url falls back to the built open.spotify.com link when external_urls is absent.
 
     Shared by get_playlist_tracks_detailed and get_liked_tracks_detailed so the
     two sources stay byte-identical in shape - another app feeds
@@ -47,13 +52,26 @@ def _detail_row(track: dict) -> dict:
     Every field is defaulted: Spotify omits fields on partial responses.
     """
     artists = track.get("artists", [])
-    release_date = (track.get("album") or {}).get("release_date", "")
+    album = track.get("album") or {}
+    release_date = album.get("release_date", "")
+    track_id = track.get("id") or ""
+    url = ((track.get("external_urls") or {}).get("spotify")) or (
+        f"https://open.spotify.com/track/{track_id}" if track_id else "")
     return {
         "artist": " & ".join(a["name"] for a in artists) if artists else "Unknown",
         "title": track.get("name", "Unknown"),
-        "album": (track.get("album") or {}).get("name", ""),
+        "album": album.get("name", ""),
         "year": release_date[:4] if release_date else "",
         "duration_ms": track.get("duration_ms", 0),
+        "id": track_id,
+        "uri": track.get("uri") or "",
+        "url": url,
+        "isrc": (track.get("external_ids") or {}).get("isrc", ""),
+        "popularity": track.get("popularity", 0),
+        "explicit": bool(track.get("explicit", False)),
+        "album_id": album.get("id") or "",
+        "artist_ids": [a.get("id") for a in artists if a and a.get("id")],
+        "preview_url": track.get("preview_url") or "",
     }
 
 

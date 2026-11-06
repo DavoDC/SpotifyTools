@@ -38,7 +38,11 @@ class SimulatedSpotifyClient(SpotifyInterface):
         "track_details": {
             "spotify:track:existing1": {
                 "artist": "Artist Name", "title": "Song Name",
-                "album": "Album Name", "year": "2020", "duration_ms": 210000
+                "album": "Album Name", "year": "2020", "duration_ms": 210000,
+                "id": "existing1", "uri": "spotify:track:existing1",
+                "url": "https://open.spotify.com/track/existing1", "isrc": "",
+                "popularity": 0, "explicit": False, "album_id": "",
+                "artist_ids": [], "preview_url": ""
             }
         },
         "error_scenarios": {
@@ -183,17 +187,29 @@ class SimulatedSpotifyClient(SpotifyInterface):
     # A fixture may override any row via "track_details": {uri: {...}}.
 
     def _detail_row_for(self, uri: str) -> dict:
-        override = (self._fixture.get("track_details") or {}).get(uri)
-        if override:
-            return dict(override)
         suffix = uri.rsplit(":", 1)[-1] or "unknown"
-        return {
+        row = {
             "artist": f"Simulated Artist {suffix}",
             "title": f"Simulated Track {suffix}",
             "album": f"Simulated Album {suffix}",
             "year": "2000",
             "duration_ms": 210000,
+            # Same extended keys as RealSpotifyClient's _detail_row. The id is
+            # synthetic, taken from the URI, so the url is never a real track.
+            "id": suffix,
+            "uri": uri,
+            "url": f"https://open.spotify.com/track/{suffix}",
+            "isrc": "",
+            "popularity": 0,
+            "explicit": False,
+            "album_id": "",
+            "artist_ids": [],
+            "preview_url": "",
         }
+        override = (self._fixture.get("track_details") or {}).get(uri)
+        if override:
+            row.update(override)
+        return row
 
     def get_playlist_tracks(self, playlist_id: str) -> list[tuple[str, str]]:
         rows = self.get_playlist_tracks_detailed(playlist_id)

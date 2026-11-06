@@ -105,11 +105,12 @@ class SpotifyInterface(ABC):
 
     @abstractmethod
     def get_playlist_tracks_detailed(self, playlist_id: str) -> list[dict]:
-        """Return {artist, title, album, year, duration_ms} per playlist track."""
+        """Return {artist, title, album, year, duration_ms, id, uri, url, isrc,
+        popularity, explicit, album_id, artist_ids, preview_url} per playlist track."""
         ...
 
     @abstractmethod
     def get_liked_tracks_detailed(self, limit: int | None = None) -> list[dict]:
-        """Return {artist, title, album, year, duration_ms} for Liked Songs,
+        """Return the same keys as get_playlist_tracks_detailed for Liked Songs,
         most-recently-added first. limit caps the read (and the pagination)."""
         ...

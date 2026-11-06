@@ -221,7 +221,9 @@ def test_simulator_get_or_create_playlist_reuses_existing():
 # before that they existed on RealSpotifyClient only, so another app's fetch
 # paths could not be run against the simulator at all.
 
-DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms"}
+DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms",
+               "id", "uri", "url", "isrc", "popularity", "explicit",
+               "album_id", "artist_ids", "preview_url"}
 
 
 def test_interface_declares_every_public_real_client_method():
@@ -462,7 +464,9 @@ def test_real_client_get_or_create_playlist_creates_new():
 # either source into the same table. The shared shape is asserted here so the
 # two can never drift apart.
 
-DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms"}
+DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms",
+               "id", "uri", "url", "isrc", "popularity", "explicit",
+               "album_id", "artist_ids", "preview_url"}
 
 
 def detailed_track(name="Song", artists=("Artist",), album="Album",
@@ -505,6 +509,9 @@ def test_get_liked_tracks_detailed_shape_matches_playlist_rows():
     assert rows[0] == {
         "artist": "Artist", "title": "Song", "album": "Album",
         "year": "1999", "duration_ms": 210000,
+        "id": "t1", "uri": "", "url": "https://open.spotify.com/track/t1",
+        "isrc": "", "popularity": 0, "explicit": False,
+        "album_id": "", "artist_ids": [], "preview_url": "",
     }
 
 
@@ -569,7 +576,10 @@ def test_get_liked_tracks_detailed_missing_fields_do_not_raise():
 
     rows = client.get_liked_tracks_detailed()
     assert rows == [{"artist": "Unknown", "title": "Unknown", "album": "",
-                     "year": "", "duration_ms": 0}]
+                     "year": "", "duration_ms": 0,
+                     "id": "x", "uri": "", "url": "https://open.spotify.com/track/x",
+                     "isrc": "", "popularity": 0, "explicit": False,
+                     "album_id": "", "artist_ids": [], "preview_url": ""}]
 
 
 def test_get_liked_tracks_detailed_limit_caps_and_stops_paging():
@@ -590,3 +600,97 @@ def test_get_liked_tracks_detailed_empty_library():
     client = _mock_real_client()
     client._sp.current_user_saved_tracks.return_value = {"items": [], "next": None}
     assert client.get_liked_tracks_detailed() == []
+
+
+# ── extra fields kept from the same page (zero extra API calls) ─────────────
+# id/uri/external_urls arrive in the playlist and liked pages already, so the
+# detailed rows keep them. A consumer can build an exact track link without a
+# second lookup. Partial responses must still produce every key, defaulted.
+
+def full_track(track_id="t1"):
+    return {
+        "id": track_id,
+        "uri": f"spotify:track:{track_id}",
+        "name": "Song",
+        "artists": [{"name": "A", "id": "ar1"}, {"name": "B", "id": "ar2"}],
+        "album": {"name": "Album", "id": "al1", "release_date": "1999-02-23"},
+        "duration_ms": 210000,
+        "explicit": True,
+        "popularity": 77,
+        "external_ids": {"isrc": "USRC17607839"},
+        "external_urls": {"spotify": f"https://open.spotify.com/track/{track_id}"},
+        "preview_url": "https://p.scdn.co/x.mp3",
+    }
+
+
+def test_playlist_detailed_row_keeps_id_uri_url_and_extra_fields():
+    client = _mock_real_client()
+    client._sp.playlist.return_value = {
+        "items": {"items": [{"item": full_track("t1")}], "next": None}
+    }
+    row = client.get_playlist_tracks_detailed("pl1")[0]
+    assert set(row) == DETAIL_KEYS
+    assert row["id"] == "t1"
+    assert row["uri"] == "spotify:track:t1"
+    assert row["url"] == "https://open.spotify.com/track/t1"
+    assert row["isrc"] == "USRC17607839"
+    assert row["popularity"] == 77
+    assert row["explicit"] is True
+    assert row["album_id"] == "al1"
+    assert row["artist_ids"] == ["ar1", "ar2"]
+    assert row["preview_url"] == "https://p.scdn.co/x.mp3"
+
+
+def test_liked_row_keeps_the_original_five_values_unchanged():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = saved_page([full_track("t1")])
+    row = client.get_liked_tracks_detailed()[0]
+    assert (row["artist"], row["title"], row["album"], row["year"], row["duration_ms"]) == (
+        "A & B", "Song", "Album", "1999", 210000)
+
+
+def test_detail_row_url_falls_back_to_built_link_when_external_urls_missing():
+    client = _mock_real_client()
+    client._sp.current_user_saved_tracks.return_value = saved_page(
+        [{"id": "t9", "name": "X", "artists": [{"name": "A"}]}])
+    row = client.get_liked_tracks_detailed()[0]
+    assert row["url"] == "https://open.spotify.com/track/t9"
+    assert row["uri"] == ""
+    assert row["isrc"] == ""
+    assert row["popularity"] == 0
+    assert row["explicit"] is False
+    assert row["album_id"] == ""
+    assert row["artist_ids"] == []
+    assert row["preview_url"] == ""
+
+
+def test_detail_row_without_id_has_empty_id_uri_and_url():
+    from spotify_tools.spotify_client import _detail_row
+    row = _detail_row({"name": "X"})
+    assert set(row) == DETAIL_KEYS
+    assert row["id"] == ""
+    assert row["uri"] == ""
+    assert row["url"] == ""
+
+
+def test_simulator_detail_row_carries_extended_keys_and_link():
+    client = SimulatedSpotifyClient(fixture_data={"initial_playlist": ["spotify:track:aaa"]})
+    row = client.get_playlist_tracks_detailed("pl1")[0]
+    assert set(row) == DETAIL_KEYS
+    assert row["id"] == "aaa"
+    assert row["uri"] == "spotify:track:aaa"
+    assert row["url"] == "https://open.spotify.com/track/aaa"
+
+
+def test_simulator_track_details_override_still_gets_extended_keys():
+    client = SimulatedSpotifyClient(fixture_data={
+        "initial_playlist": ["spotify:track:aaa"],
+        "track_details": {"spotify:track:aaa": {
+            "artist": "Eminem", "title": "Lose Yourself", "album": "8 Mile",
+            "year": "2002", "duration_ms": 320000,
+        }},
+    })
+    row = client.get_playlist_tracks_detailed("pl1")[0]
+    assert set(row) == DETAIL_KEYS
+    assert row["title"] == "Lose Yourself"
+    assert row["url"] == "https://open.spotify.com/track/aaa"

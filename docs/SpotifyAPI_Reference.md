@@ -111,6 +111,14 @@ Replaces the ENTIRE playlist contents with a new set of URIs.
 
 ---
 
+## Fields we keep from playlist/liked pages (no extra calls)
+
+`get_playlist_tracks_detailed` and `get_liked_tracks_detailed` keep these keys from the page they already read: `artist`, `title`, `album`, `year`, `duration_ms`, `id`, `uri`, `url`, `isrc`, `popularity`, `explicit`, `album_id`, `artist_ids`, `preview_url`.
+
+`id`, `uri` and `external_urls` arrive in the same page as the rest of the track, so no second lookup is needed. `url` is `external_urls.spotify`, falling back to `https://open.spotify.com/track/<id>` when that field is missing. Every key is defaulted (`""`, `0`, `False`, `[]`) so partial responses still produce the full shape.
+
+---
+
 ## Key Lessons (Hard-Won)
 
 1. **`"track"` → `"item"` key change**: Every playlist item now uses `item["item"]` for the track object. `item["track"]` exists but is deprecated. Test with `_get_track_obj()` helper that handles both.
