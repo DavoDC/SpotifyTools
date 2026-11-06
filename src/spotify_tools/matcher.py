@@ -54,6 +54,37 @@ def normalise(s: str) -> str:
     return s
 
 
+# Registered and copyright marks, which sources spell differently ("BNYX(R)" vs "BNYX®").
+_MARKS_RE = re.compile(r"\(R\)|\(C\)|[®™©]")
+_ARTIST_SPLIT_RE = re.compile(r"\s*&\s*|\s*;\s*|\s*,\s*")
+_DASH_SUFFIX_RE = re.compile(r"\s+-\s+([^-]+)$")
+# A trailing "(Edited)", "- Explicit", "[Clean]", "- Remastered 2009" or "(Radio Edit)" is the same
+# track as the bare title. Applied after clean_title inside title_key.
+_TITLE_SUFFIX_RE = re.compile(
+    r"\s*(?:[\(\[]|[-])?\s*\b(?:edited|explicit|clean|remaster(?:ed)?(?:\s+\d{4})?|radio edit)\b\s*[\)\]]?\s*$",
+    re.IGNORECASE,
+)
+
+
+def primary_artist(artist: str) -> str:
+    """First artist of a multi-artist field: feat./ft. dropped, (R)/(C)/trademark marks removed,
+    then the text before " & ", ";" or ","."""
+    name = _MARKS_RE.sub("", clean_artist(artist))
+    return _ARTIST_SPLIT_RE.split(name)[0].strip()
+
+
+def title_key(title: str) -> str:
+    """Normalised title for matching. A trailing " - Single Version" becomes "(Single Version)",
+    then clean_title and the trailing edit words are removed, then normalise."""
+    text = _DASH_SUFFIX_RE.sub(r" (\1)", title or "")
+    return normalise(_TITLE_SUFFIX_RE.sub("", clean_title(text)))
+
+
+def content_key(artist: str, title: str) -> str:
+    """Normalised "primary artist:title key" pair, content only (no fetch-order index)."""
+    return f"{normalise(primary_artist(artist))}:{title_key(title)}"
+
+
 def score_match(track: dict, result: dict) -> str:
     track_artist = track["primary_artist"].lower()
     track_title = clean_title(track["title"]).lower()

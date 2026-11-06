@@ -37,6 +37,7 @@ Stable public surface (import only these, never underscore names):
 | `spotify_tools.build_client(config=None)` | Authenticated Spotify client |
 | `spotify_tools.spotify_simulator.SimulatedSpotifyClient` | Offline stand-in for tests |
 | `spotify_tools.matcher.clean_artist / clean_title / normalise` | Name cleanup used for matching |
+| `spotify_tools.matcher.primary_artist / title_key / content_key` | First artist, normalised title (edit words dropped) and the `artist:title` key used for matching |
 | `spotify_tools.acquire.move_liked_to_playlist` | Move Liked Songs into a playlist |
 | `spotify_tools.open_playlist.extract_playlist_id` | Playlist URL helper |
 | `spotify_tools.open_playlist.build_search_url` | Deprecated alias, kept until API_VERSION 2 removes it |

@@ -7,6 +7,23 @@ in config (CONFIG_PATH, load_config), matcher, open_playlist
 
 API_VERSION = 1
 
+# The names a consumer may import. README.md and CLAUDE.md must list the same names.
+PUBLIC_API = (
+    "API_VERSION",
+    "build_client",
+    "CONFIG_PATH",
+    "load_config",
+    "clean_artist",
+    "clean_title",
+    "normalise",
+    "score_match",
+    "primary_artist",
+    "title_key",
+    "content_key",
+    "extract_playlist_id",
+    "build_search_url",
+)
+
 
 def build_client(config=None):
     """Return an authenticated RealSpotifyClient.
