@@ -1,7 +1,7 @@
 """Public-naming guard: the repo must not name a specific consumer.
 
 Scans every git-tracked text file under src/, tests/, docs/ (including
-docs/References/Engineering-Guidelines.md), README.md and CLAUDE.md. Fails on consumer-app names, on the old name, and on absolute user paths. The word external tool is allowed only on a
+docs/References/Engineering-Guidelines.md), README.md and CLAUDE.md. Fails on consumer-app names, on the old name, and on absolute user paths. The external tool name is allowed only on a
 line that also names build_search_url (the kept public alias).
 """
 
@@ -15,7 +15,7 @@ SCAN_PREFIXES = ("src/", "tests/", "docs/")
 SCAN_FILES = ("README.md", "CLAUDE.md")
 
 FORBIDDEN_RE = old_pattern
-external tool_RE = re.compile(r"external tool", re.IGNORECASE)
+external tool_RE = re.compile("old-name", re.IGNORECASE)
 ALLOWED_ALIAS_LINE = "build_search_url"
 ABSOLUTE_PATH_RE = re.compile(r"C:\\Users|/c/Users", re.IGNORECASE)
 
