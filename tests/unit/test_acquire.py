@@ -36,7 +36,7 @@ def test_empty_liked_songs_is_a_no_op():
 
     assert result.moved_count == 0
     assert result.errors == []
-    assert result.playlist_id  # playlist still created/reused so the UI has somewhere to point
+    assert result.playlist_id  # playlist still created/reused so the consumer has somewhere to point
 
 
 def test_custom_playlist_name():

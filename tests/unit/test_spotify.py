@@ -218,7 +218,7 @@ def test_simulator_get_or_create_playlist_reuses_existing():
 
 # ── simulator read/browse methods (the ABC's read side) ─────────────────────
 # Added 2026-09-05 with the four read methods moving onto SpotifyInterface;
-# before that they existed on RealSpotifyClient only, so another app's fetch
+# before that they existed on RealSpotifyClient only, so a consumer's fetch
 # paths could not be run against the simulator at all.
 
 DETAIL_KEYS = {"artist", "title", "album", "year", "duration_ms",

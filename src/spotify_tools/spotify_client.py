@@ -381,7 +381,7 @@ class RealSpotifyClient(SpotifyInterface):
 
     def get_playlist_name(self, playlist_id: str) -> str:
         """Return a playlist's display name. Single lightweight field fetch -
-        no track pagination - for labelling playlist-history entries."""
+        no track pagination - for labelling playlist-history entries in the consumer."""
         playlist = _retry_call(self._sp, "playlist", playlist_id, fields="name")
         return playlist.get("name", "") if playlist else ""
 

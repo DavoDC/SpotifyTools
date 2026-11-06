@@ -1,7 +1,7 @@
 """Liked Songs orchestration: move Liked Songs into an inbox playlist.
 
 Pure orchestration over SpotifyInterface - no network/API code of its own.
-Available for CLI and test use.
+Used by a consumer and available for CLI/test use here.
 """
 
 from dataclasses import dataclass, field

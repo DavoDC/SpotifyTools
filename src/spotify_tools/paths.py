@@ -17,8 +17,7 @@ the offset from its own __file__ - every other module just imports the
 already-resolved constant, so a future move only requires updating this file.
 
 Resolution order:
-1. SPOTIFY_TOOLS_ROOT env var, if set - lets a consumer (another app,
-   a test) point at a specific location explicitly.
+1. SPOTIFY_TOOLS_ROOT env var, if set - lets a consumer or a test point at a specific location explicitly.
 2. This file's own location: paths.py lives at <repo>/src/spotify_tools/paths.py,
    so three dirname() calls from here always lands at <repo>.
 """

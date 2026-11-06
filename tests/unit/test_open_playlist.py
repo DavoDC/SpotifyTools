@@ -171,8 +171,8 @@ def test_build_search_url_no_network_call():
 
 # ── feat/ft stripping must not eat words that merely CONTAIN "ft"/"feat" ──
 # Regression: `_FEAT_RE` had no word boundary, so "Left Behind" was truncated to
-# "Le" and the external tool link searched for garbage. Confirmed against the live
-# external tool instance on 2026-09-05.
+# "Le" and the external link searched for garbage. Confirmed against the live
+# external link on 2026-09-05.
 
 @pytest.mark.parametrize("artist,title,expected_term", [
     ("Linkin Park", "Left Behind", "Linkin+Park+Left+Behind"),

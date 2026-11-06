@@ -43,7 +43,7 @@ CSV format: `Artist` (semicolon-separated e.g. `Eminem;50 Cent`), `Title`, `Albu
 
 - Input is M3U, not CSV. The workflow would require either: (a) generating an M3U pointing at your actual MP3 files, or (b) a rewrite.
 - Search query is built as `"artist title"` — only two fields, no album. Artist comes from the ID3 `TPE1` tag.
-- ID3 `TPE1` tags in this library are already in `Artist;FeatArtist` format (the custom the consumer format). The script takes `TPE1` as a single string and passes it straight to Spotify search. A query like `"Eminem;50 Cent Patiently Waiting"` would likely fail.
+- ID3 `TPE1` tags in this library are already in `Artist;FeatArtist` format (the custom library export format). The script takes `TPE1` as a single string and passes it straight to Spotify search. A query like `"Eminem;50 Cent Patiently Waiting"` would likely fail.
 - No failure output file — silently drops unmatched tracks with no recovery path.
 - Most recently maintained of the four (Nov 2025), and actively improved (switched from eyed3 to mutagen).
 - **Verdict: Closest to working if you have M3U files.** But the semicolon artist format and silent failure are real problems.
@@ -63,7 +63,7 @@ CSV format: `Artist` (semicolon-separated e.g. `Eminem;50 Cent`), `Title`, `Albu
 
 **Assessment:**
 
-- **CSV schema is the closest match** to the the consumer export. The sample CSV (`songs.csv.sample`) uses exactly `artist, album, title` — three of the four columns in the the consumer export (Year is the only extra, and it is ignored harmlessly).
+- **CSV schema is the closest match** to the library export. The sample CSV (`songs.csv.sample`) uses exactly `artist, album, title`; three of the four columns in the library export (Year is the only extra, and it is ignored harmlessly).
 - Search query is built as `"artist - title - album"` (or `"artist - title"` if no album), then cleaned by stripping "feat.", "ft.", remix variants, and " &".
 - The `replace_bad_words()` cleanup is useful — it strips "feat." from titles. However, the semicolon in `Eminem;50 Cent` is not handled. The whole string goes verbatim into the search query, e.g. `"Eminem;50 Cent - Patiently Waiting - 8 Mile"`. Spotify search would likely match on `Eminem` and ignore the rest, which may work accidentally in many cases — but it's unreliable.
 - Uses `SequenceMatcher` to rank search results by similarity to the original query, which is smarter than just taking the top result.
@@ -110,7 +110,7 @@ CSV format: `Artist` (semicolon-separated e.g. `Eminem;50 Cent`), `Title`, `Albu
 **Use `smtchahal/spotify-import` as the base, with one targeted modification.**
 
 It is the only tool that:
-- Accepts CSV input directly matching the the consumer export format (`artist, album, title`)
+- Accepts CSV input directly matching the library export format (`artist, album, title`)
 - Has working failure logging
 - Cleans up "feat." and related noise from search queries
 - Has tests and reasonably recent maintenance (2023)
@@ -133,10 +133,10 @@ Spotify's search is a fuzzy text search — searching for `Eminem - Patiently Wa
 
 ### Minor Adaptations
 
-- The the consumer CSV has a `Year` column not present in the sample. `csv.DictReader` will include it in each row dict but the code never reads it — **no change needed**.
-- The `replace_bad_words()` function already strips "feat." and "ft." from titles. This is compatible with the the consumer filename style.
+- The library export CSV has a `Year` column not present in the sample. `csv.DictReader` will include it in each row dict but the code never reads it, so **no change needed**.
+- The `replace_bad_words()` function already strips "feat." and "ft." from titles. This is compatible with the library export filename style.
 - Windows: Python runs on Windows, `pip install -r requirements.txt`, credentials go in `.env`. No obstacles.
 
 ### Alternative: `FutureSharks/spotify-m3u-import` if M3U is preferred
 
-If you already have M3U playlists (or the consumer can export them), this tool is more actively maintained (Nov 2025) and reads directly from ID3 tags. The only change needed would be handling the semicolon in `TPE1` — same fix: split on `;` and use only the first artist in the search query. The lack of a failure output file is a drawback that would also need patching.
+If you already have M3U playlists (or the library export can produce them), this tool is more actively maintained (Nov 2025) and reads directly from ID3 tags. The only change needed would be handling the semicolon in `TPE1`; same fix: split on `;` and use only the first artist in the search query. The lack of a failure output file is a drawback that would also need patching.

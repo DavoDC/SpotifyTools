@@ -67,7 +67,7 @@ All data/config paths (`CONFIG_PATH`, `CACHE_PATH`, `HISTORY_PATH`, etc.) resolv
 
 ```bash
 # Run tests
-cd <home>\GitHubRepos\SpotifyTools
+cd <repo-root>
 python -m pytest tests/ -v
 
 # Run the tool
