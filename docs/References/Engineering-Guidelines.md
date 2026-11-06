@@ -54,21 +54,26 @@ All API responses must be validated.
 
 Each module must have a single clear responsibility.
 
-Target structure:
+Current structure:
 
 ```
 src/spotify_tools/
-  xml_parser.py          - Parse AudioMirror XML
-  matcher.py             - Normalize strings + match/score tracks
-  spotify_interface.py   - ABC for swappable API clients
-  spotify_client.py      - Real Spotify API wrapper (retries, pagination)
-  spotify_simulator.py   - Deterministic mock for testing
-  reconciler.py          - Deterministic playlist state reconciliation
-  history_store.py       - Manage history.json safely (atomic writes)
+  __init__.py            - Public surface (API_VERSION, build_client, public names)
+  acquire.py             - Liked Songs -> playlist orchestration (library use)
   config.py              - Config loading and validation
-  report_generator.py    - Produce human-readable results
+  diagnose.py            - Spotify auth diagnostic
+  history_store.py       - Manage history.json safely (atomic writes)
   lockfile.py            - Concurrent run protection
   main.py                - CLI entrypoint + pipeline orchestration
+  matcher.py             - Normalize strings + match/score tracks
+  open_playlist.py       - Playlist URL helpers and opening playlist tracks locally
+  paths.py               - Single source of truth for REPO_ROOT
+  reconciler.py          - Deterministic playlist state reconciliation
+  report_generator.py    - Produce human-readable results
+  spotify_client.py      - Real Spotify API wrapper (retries, pagination)
+  spotify_interface.py   - ABC for swappable API clients
+  spotify_simulator.py   - Deterministic mock for testing
+  xml_parser.py          - Parse AudioMirror-style XML library exports
 ```
 
 No module should perform unrelated tasks.

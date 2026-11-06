@@ -55,7 +55,7 @@ Returns the full playlist object.
     "limit": 100,
     "next": "...",
     "offset": 0,
-    "total": 603
+    "total": 100
   }
 }
 ```

@@ -156,7 +156,7 @@ def test_open_search_single_artist_unchanged():
     assert "Ne" in url and "Yo" in url and "Ms" in url and "Tundra" in url
 
 
-# ── _build_search_url (pure function, reused by another app) ──
+# ── _build_search_url (pure function reusable) ──
 
 def test_build_search_url_matches_open_search():
     """_open_search must just be webbrowser.open(_build_search_url(...))."""
