@@ -8,7 +8,7 @@ Python gateway to Spotify, built to be reused by other projects (the same idea a
 
 All Spotify logic lives here: authentication, a rate-limit-safe API client, track search and match scoring, playlist read and write, Liked Songs handling, and an offline simulator for tests. Your own app imports it and never talks to Spotify directly.
 
-It also ships one ready-made tool: a CLI that syncs an offline music library (AudioMirror XML) to a Spotify playlist, so the same tracks play at home and at work.
+It also ships one ready-made tool: a CLI that syncs an offline music library (AudioMirror XML) to a Spotify playlist.
 
 **Scope:** this repo is the Spotify side only. It does not tag, route or analyse files, and it has no UI; a consuming app supplies those.
 

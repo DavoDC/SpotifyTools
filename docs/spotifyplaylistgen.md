@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Convert David's offline music library (AudioMirror XML) into a Spotify playlist he can use at work.
+Convert an offline music library (AudioMirror XML) into a Spotify playlist.
 
 ## Architecture (v2 — refactored 2026-03-11)
 
