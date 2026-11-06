@@ -2,7 +2,7 @@
 
 Consumers must import only: API_VERSION, build_client, and the public names
 in config (CONFIG_PATH, load_config), matcher, open_playlist
-(extract_playlist_id, build_search_url), acquire and spotify_simulator.
+(extract_playlist_id, build_search_url, build_search_url), acquire and spotify_simulator.
 """
 
 API_VERSION = 1
@@ -21,6 +21,7 @@ PUBLIC_API = (
     "title_key",
     "content_key",
     "extract_playlist_id",
+    "build_search_url",
     "build_search_url",
 )
 

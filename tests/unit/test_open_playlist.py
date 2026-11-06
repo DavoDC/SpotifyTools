@@ -197,3 +197,14 @@ def test_build_search_url_keeps_words_containing_ft(artist, title, expected_term
 def test_build_search_url_still_strips_real_featured_artists(artist, title, expected_term):
     """Genuine 'feat.'/'ft.' credits must still be stripped."""
     assert _build_search_url(artist, title) == f"{SEARCH_BASE}?term={expected_term}"
+
+
+def test_build_search_url_escapes_slash_and_ampersand():
+    from spotify_tools.open_playlist import build_search_url
+    url = build_search_url("AC/DC", "Rock & Roll")
+    assert url == "https://open.spotify.com/search/AC%2FDC%20Rock%20%26%20Roll"
+
+
+def test_build_search_url_is_public():
+    from spotify_tools import PUBLIC_API
+    assert "build_search_url" in PUBLIC_API

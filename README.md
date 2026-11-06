@@ -40,6 +40,7 @@ Stable public surface (import only these, never underscore names):
 | `spotify_tools.matcher.primary_artist / title_key / content_key` | First artist, normalised title and the stable `artist:title` persistence key used for matching |
 | `spotify_tools.acquire.move_liked_to_playlist` | Move Liked Songs into a playlist |
 | `spotify_tools.open_playlist.extract_playlist_id` | Playlist URL helper |
+| `spotify_tools.open_playlist.build_search_url` | Spotify search link for "artist title" |
 | `spotify_tools.open_playlist.build_search_url` | Deprecated alias, kept until API_VERSION 2 removes it |
 | `spotify_tools.config.CONFIG_PATH / load_config` | Config location and loader |
 

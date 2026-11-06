@@ -84,6 +84,12 @@ def _save_cache(playlist_id: str, tracks: list):
 _FEAT_RE = re.compile(r'\s*[\(\[]?\b(?:feat|ft)\b\.?\s+.*', re.IGNORECASE)
 
 
+def build_search_url(artist: str, title: str) -> str:
+    """Spotify search link for "artist title". safe="" escapes a slash or ampersand."""
+    from urllib.parse import quote
+    return "https://open.spotify.com/search/" + quote(f"{artist} {title}", safe="")
+
+
 def _clean_for_search(text: str) -> str:
     """Strip non-word characters so the external app receives plain words only."""
     stripped = re.sub(r'[^\w\s]', ' ', text)
