@@ -84,7 +84,7 @@ class SpotifyInterface(ABC):
 
     # ---------------------------------------------------------------- read/browse
     #
-    # These four are the read side consumed by another app.
+    # These four are the read side consumed by a consumer.
     # They lived on RealSpotifyClient only until 2026-09-05, which meant a
     # caller holding a SpotifyInterface was really depending on the concrete
     # class and could not be run against the simulator. Any new method that

@@ -47,7 +47,7 @@ def _detail_row(track: dict) -> dict:
     url falls back to the built open.spotify.com link when external_urls is absent.
 
     Shared by get_playlist_tracks_detailed and get_liked_tracks_detailed so the
-    two sources stay byte-identical in shape - another app feeds
+    two sources stay byte-identical in shape - a consumer feeds
     either into the same table, so a drift between them would be a silent bug.
     Every field is defaulted: Spotify omits fields on partial responses.
     """
@@ -381,7 +381,7 @@ class RealSpotifyClient(SpotifyInterface):
 
     def get_playlist_name(self, playlist_id: str) -> str:
         """Return a playlist's display name. Single lightweight field fetch -
-        no track pagination - for labelling playlist-history entries in the consumer."""
+        no track pagination - for labelling playlist-history entries in the caller."""
         playlist = _retry_call(self._sp, "playlist", playlist_id, fields="name")
         return playlist.get("name", "") if playlist else ""
 

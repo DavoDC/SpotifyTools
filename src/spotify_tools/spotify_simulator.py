@@ -179,7 +179,7 @@ class SimulatedSpotifyClient(SpotifyInterface):
     # ---------------------------------------------------------------- read/browse
     #
     # Counterparts of RealSpotifyClient's read methods, so a consumer holding
-    # a SpotifyInterface (another app) can run against the
+    # a SpotifyInterface (a caller) can run against the
     # simulator instead of a live account. Rows are derived from the in-memory
     # URI state so add_tracks/remove_tracks are reflected here too, and every
     # value is unmistakably synthetic ("Simulated Artist aaa") - nothing here

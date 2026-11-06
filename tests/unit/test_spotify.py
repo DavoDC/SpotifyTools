@@ -460,7 +460,7 @@ def test_real_client_get_or_create_playlist_creates_new():
 
 
 # ── detailed track reads (playlist + Liked Songs) ───────────────────────────
-# Both return the same row shape, because another app feeds
+# Both return the same row shape, because a consumer feeds
 # either source into the same table. The shared shape is asserted here so the
 # two can never drift apart.
 

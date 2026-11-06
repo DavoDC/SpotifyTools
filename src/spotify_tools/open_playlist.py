@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open Spotify playlist tracks in a local consumer.
+"""Open Spotify playlist tracks for a local consumer.
 
 Accepts a playlist ID or a full Spotify URL:
   https://open.spotify.com/playlist/EXAMPLEPLAYLISTID0000?si=...
@@ -91,7 +91,8 @@ def _clean_for_search(text: str) -> str:
 
 
 def _build_search_url(artist: str, title: str) -> str:
-    """Pure URL-building half of _open_search - reused by another app so link-building logic isn't duplicated cross-repo."""
+    """Pure URL-building half of _open_search - reusable
+    so link-building logic isn't duplicated cross-repo."""
     primary = artist.split(' & ')[0].split(';')[0].strip()
     core_title = _FEAT_RE.sub('', title).strip()
     query = _clean_for_search(f"{primary} {core_title}")

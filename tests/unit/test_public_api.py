@@ -1,4 +1,4 @@
-"""Public API surface consumed by a consumer."""
+"""Public API surface consumed by a caller."""
 
 from unittest.mock import patch
 
