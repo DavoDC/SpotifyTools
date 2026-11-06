@@ -41,8 +41,8 @@ TITLE_CASES = [
     ("Hey Jude (Single Version)", "hey jude"),
     ("Song (feat. Rihanna)", "song"),
     ("Song - feat. Rihanna", "song"),
-    ("Song (Edited)", "song"),
-    ("Song - Edited", "song"),
+    ("Song (Edited)", "song edited"),
+    ("Song - Edited", "song edited"),
     ("Song (Remastered 2009)", "song"),
     ("Song - Remastered 2009", "song"),
     ("Song - Explicit", "song"),
@@ -59,13 +59,13 @@ TITLE_CASES = [
 ]
 
 CONTENT_CASES = [
-    ("Drake feat. Rihanna", "Hey Jude - Single Version", "drake:hey jude"),
+    ("Drake feat. Rihanna", "Hey Jude - Single Version", "drake:hey jude single version"),
     ("Simon & Garfunkel", "The Sound of Silence", "simon:sound of silence"),
-    ("BNYX(R)", "Song (Edited)", "bnyx:song"),
+    ("BNYX(R)", "Song (Edited)", "bnyxr:song edited"),
     ("Earth, Wind & Fire", "September", "earth:september"),
     ("The Beatles", "Hey Jude", "beatles:hey jude"),
     ("Beyoncé & JAY-Z", "Déjà Vu", "beyonce:deja vu"),
-    ("Drake (R)", "Don't Stop - Remastered 2009", "drake:dont stop"),
+    ("Drake (R)", "Don't Stop - Remastered 2009", "drake r:dont stop remastered 2009"),
     ("Tyler, The Creator", "Song (feat. X)", "tyler:song"),
     ("", "", ":"),
 ]
@@ -86,9 +86,9 @@ def test_content_key(artist, title, expected):
     assert content_key(artist, title) == expected
 
 
-def test_content_key_is_artist_colon_title_key():
-    artist, title = "Simon & Garfunkel (R)", "Hey Jude - Single Version"
-    assert content_key(artist, title) == f"{normalise(primary_artist(artist))}:{title_key(title)}"
+def test_content_key_is_stable_persistence_key():
+    # Stored keys must not change: no dash-suffix rewrite and no mark stripping in content_key.
+    assert content_key("Simon & Garfunkel", "Hey Jude - Single Version") == "simon:hey jude single version"
 
 
 def test_new_helpers_live_in_matcher():
