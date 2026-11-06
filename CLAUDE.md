@@ -1,9 +1,20 @@
 # SpotifyTools
 
+## Role and boundary (read first)
+
+This repo is the **Spotify gateway module**, a reusable helper like ytkit (YouTube) and ffkit (FFmpeg). All Spotify logic lives here and nowhere else: auth, API client, search, match scoring, playlist and Liked Songs operations, simulator, plus the library-to-playlist sync CLI. Consumers import it; they never call Spotify themselves.
+
+Three-repo split (kept consistent with the other two repos' CLAUDE.md, owned in elsewhere):
+- **SpotifyTools (this repo, public):** everything that talks to or reasons about Spotify. No UI, no file tagging, no library routing.
+- **the engine (public, C#):** the library engine: tags, routing, analysis, AudioMirror XML. Owns library truth. Never contains Spotify code.
+- **consumer:** the frontend plus external tool and workflow. Imports this repo only through its single bridge module; never reimplements Spotify logic.
+
+Rules that follow: a Spotify feature needed by a consumer is added HERE with a stable public name, never duplicated in the consumer. Library-file logic needed here goes to the engine, never into this repo. Public docs (README, code, commits) never name unreleased repos, private paths or other consumers; consumers are described generically ("other projects"). A breaking change to the public surface bumps `API_VERSION`.
+
 **Tools in this repo:**
 - `src/spotify_tools/main.py` - batch sync tool. Reads AudioMirror XML library, syncs to a Spotify playlist. Run via `scripts/run.bat`.
 - `src/spotify_tools/open_playlist.py` - interactive browser. Opens Spotify playlist tracks in browser one by one for review/lookup.
-- `src/spotify_tools/acquire.py` - shared orchestration (Liked Songs -> inbox playlist). No CLI entrypoint of its own; imported directly by another app ("Acquire" tab) as a sibling-directory Python import - see `docs/References/the architecture doc` in the consumer for the boundary contract.
+- `src/spotify_tools/acquire.py` - shared orchestration (Liked Songs -> inbox playlist). No CLI entrypoint of its own; imported by consumers as a sibling-directory Python import (public surface below).
 - `src/spotify_tools/diagnose.py` - auth diagnostic, run via `python -m spotify_tools.diagnose` (also invoked silently on every `scripts/run.sh` launch).
 
 All share `src/spotify_tools/spotify_client.py` as the Spotify API client, built behind the `SpotifyInterface` ABC (`spotify_interface.py`) so `spotify_simulator.py`'s `SimulatedSpotifyClient` can stand in for tests.
@@ -90,4 +101,4 @@ Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize
 
 ## Claude instructions
 
-Stable public surface for consumers (the consumer): `spotify_tools.API_VERSION` (int, bump on breaking change), `spotify_tools.build_client(config=None)` (wraps `RealSpotifyClient`, `None` loads the default config), and `open_playlist.build_search_url` (public alias of `_build_search_url`; the underscore name still works). Plus the already-public `config.CONFIG_PATH`, `config.load_config`, `matcher.clean_artist/clean_title/normalise`, `open_playlist.extract_playlist_id`, `acquire.move_liked_to_playlist`, `spotify_simulator.SimulatedSpotifyClient`. Consumers must import only these, never underscore names.
+Stable public surface for consumers: `spotify_tools.API_VERSION` (int, bump on breaking change), `spotify_tools.build_client(config=None)` (wraps `RealSpotifyClient`, `None` loads the default config), and `open_playlist.build_search_url` (public alias of `_build_search_url`; the underscore name still works). Plus the already-public `config.CONFIG_PATH`, `config.load_config`, `matcher.clean_artist/clean_title/normalise`, `open_playlist.extract_playlist_id`, `acquire.move_liked_to_playlist`, `spotify_simulator.SimulatedSpotifyClient`. Consumers must import only these, never underscore names.

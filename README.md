@@ -4,15 +4,42 @@
 
 
 
-Python CLI tool that syncs your offline music library (AudioMirror XML) to a Spotify playlist.
+Python gateway to Spotify, built to be reused by other projects (the same idea as [ytkit](https://github.com/DavoDC/ytkit) for YouTube and [ffkit](https://github.com/DavoDC/ffkit) for FFmpeg).
 
-**Consumption note:** another app (`the UI`) consumes this repo directly via a sibling-directory `sys.path.insert` import, not as a pip-installed package - this is deliberate, not a packaged/installed shared library.
+All Spotify logic lives here: authentication, a rate-limit-safe API client, track search and match scoring, playlist read and write, Liked Songs handling, and an offline simulator for tests. Your own app imports it and never talks to Spotify directly.
 
-**Use case:** Offline music library at home → listen to the same tracks on Spotify at work.
+It also ships one ready-made tool: a CLI that syncs an offline music library (AudioMirror XML) to a Spotify playlist, so the same tracks play at home and at work.
+
+**Scope:** this repo is the Spotify side only. It does not tag, route or analyse files, and it has no UI; a consuming app supplies those.
 
 ---
 
-## How it works
+## Library use
+
+```python
+import spotify_tools
+
+assert spotify_tools.API_VERSION == 1          # bumped on any breaking change
+client = spotify_tools.build_client()          # authenticated client, loads config/config.json
+```
+
+Stable public surface (import only these, never underscore names):
+
+| Name | What it gives you |
+|------|-------------------|
+| `spotify_tools.API_VERSION` | Integer, bumped on a breaking change |
+| `spotify_tools.build_client(config=None)` | Authenticated Spotify client |
+| `spotify_tools.spotify_simulator.SimulatedSpotifyClient` | Offline stand-in for tests |
+| `spotify_tools.matcher.clean_artist / clean_title / normalise` | Name cleanup used for matching |
+| `spotify_tools.acquire.move_liked_to_playlist` | Move Liked Songs into a playlist |
+| `spotify_tools.open_playlist.extract_playlist_id / build_search_url` | Playlist URL helpers |
+| `spotify_tools.config.CONFIG_PATH / load_config` | Config location and loader |
+
+Clone it next to your project and put `src/` on `sys.path` (or set `SPOTIFY_TOOLS_ROOT`); it is not published to PyPI.
+
+---
+
+## Sync tool: how it works
 
 1. Reads XML files from your AudioMirror library
 2. Computes a sync plan: what to add, remove, recover, or search
@@ -99,7 +126,7 @@ SpotifyTools/
 │       ├── spotify_interface.py    # ABC for API clients
 │       ├── spotify_client.py   # Real Spotify client
 │       ├── spotify_simulator.py    # Mock client for testing
-│       ├── acquire.py          # Liked Songs -> inbox playlist orchestration (used by UI)
+│       ├── acquire.py          # Liked Songs -> playlist orchestration (library use)
 │       ├── open_playlist.py    # Open playlist tracks in local external app
 │       ├── diagnose.py         # Auth diagnostic (python -m spotify_tools.diagnose)
 │       ├── history_store.py    # Safe JSON persistence
@@ -132,10 +159,6 @@ SpotifyTools/
 | `custom` | Manually marked as not on Spotify - always skipped |
 
 ---
-
-## Library use
-
-Other apps can import a small stable surface: `spotify_tools.API_VERSION`, `spotify_tools.build_client(config=None)` for an authenticated client, and `open_playlist.build_search_url`.
 
 ## Running tests
 
