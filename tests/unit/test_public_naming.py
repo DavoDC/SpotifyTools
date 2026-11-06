@@ -1,7 +1,7 @@
 """Public-naming guard: the repo must not name a specific consumer.
 
-Scans every git-tracked text file under src/, tests/, docs/, README.md,
-CLAUDE.md and GUIDELINES.md. Fails on consumer-app names, on the old name, and on absolute user paths. The word external tool is allowed only on a
+Scans every git-tracked text file under src/, tests/, docs/ (including
+docs/References/Engineering-Guidelines.md), README.md and CLAUDE.md. Fails on consumer-app names, on the old name, and on absolute user paths. The word external tool is allowed only on a
 line that also names build_search_url (the kept public alias).
 """
 
@@ -12,7 +12,7 @@ import subprocess
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 THIS_FILE = "tests/unit/test_public_naming.py"
 SCAN_PREFIXES = ("src/", "tests/", "docs/")
-SCAN_FILES = ("README.md", "CLAUDE.md", "GUIDELINES.md")
+SCAN_FILES = ("README.md", "CLAUDE.md")
 
 FORBIDDEN_RE = old_pattern
 external tool_RE = re.compile(r"external tool", re.IGNORECASE)

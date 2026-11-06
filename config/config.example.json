@@ -3,5 +3,5 @@
   "spotify_client_secret": "your_client_secret",
   "spotify_redirect_uri": "http://127.0.0.1:8888/callback",
   "spotify_playlist_id": "your_playlist_id",
-  "audiomirror_path": "C:/Users/YourName/GitHubRepos/AudioMirror/AUDIO_MIRROR"
+  "audiomirror_path": "C:/path/to/AudioMirror/AUDIO_MIRROR"
 }

@@ -116,7 +116,7 @@ Use `--reset-exhausted` to retry tracks that gave up after 5 failed searches (e.
 
 ```
 SpotifyTools/
-├── CLAUDE.md / GUIDELINES.md   # Engineering rules
+├── CLAUDE.md                   # Claude instructions and repo boundary
 ├── config/
 │   ├── config.json             # Credentials (gitignored)
 │   ├── config.example.json     # Template
@@ -146,7 +146,12 @@ SpotifyTools/
 ├── scripts/
 │   └── run.bat / run.sh        # Launchers
 ├── docs/
-│   └── spotify-api-reference.md
+│   ├── SpotifyAPI_Reference.md             # Spotify Web API notes
+│   ├── Sync-Tool-Design.md                 # Sync tool design
+│   ├── Third-party-tool-assessment.md      # Historical survey of import tools
+│   └── References/
+│       ├── Engineering-Guidelines.md       # Engineering rules
+│       └── DevContext.md                   # Implementation invariants
 └── data/                       # Gitignored runtime data
     ├── history.json            # Decision history
     ├── logs/                   # Run logs

@@ -12,7 +12,7 @@ Correctness, determinism, and reliability are more important than speed or minim
 
 ## Primary Goal
 
-Build a deterministic, reliable Python CLI tool that converts a local AudioMirror XML music library into a Spotify playlist.
+Build a deterministic, reliable Python sync tool that converts a local music library into a Spotify playlist. The input is a track list; the AudioMirror XML reader is one input adapter (see the Design boundary in README.md).
 
 The program must be safe to run repeatedly and must always converge to the same playlist state.
 
@@ -58,17 +58,17 @@ Target structure:
 
 ```
 src/spotify_tools/
-  xml_parser.py          — Parse AudioMirror XML
-  matcher.py             — Normalize strings + match/score tracks
-  spotify_interface.py   — ABC for swappable API clients
-  spotify_client.py      — Real Spotify API wrapper (retries, pagination)
-  spotify_simulator.py   — Deterministic mock for testing
-  reconciler.py          — Deterministic playlist state reconciliation
-  history_store.py       — Manage history.json safely (atomic writes)
-  config.py              — Config loading and validation
-  report_generator.py    — Produce human-readable results
-  lockfile.py            — Concurrent run protection
-  main.py                — CLI entrypoint + pipeline orchestration
+  xml_parser.py          - Parse AudioMirror XML
+  matcher.py             - Normalize strings + match/score tracks
+  spotify_interface.py   - ABC for swappable API clients
+  spotify_client.py      - Real Spotify API wrapper (retries, pagination)
+  spotify_simulator.py   - Deterministic mock for testing
+  reconciler.py          - Deterministic playlist state reconciliation
+  history_store.py       - Manage history.json safely (atomic writes)
+  config.py              - Config loading and validation
+  report_generator.py    - Produce human-readable results
+  lockfile.py            - Concurrent run protection
+  main.py                - CLI entrypoint + pipeline orchestration
 ```
 
 No module should perform unrelated tasks.
@@ -249,7 +249,7 @@ LOW matches are NOT added to the playlist. They are saved to a review list in a 
 
 ### 2. Intentional Playlist Removals → Re-add + Flag
 
-If a track is in history as "added" but missing from the playlist, re-add it. This is treated as an unexpected gap, not an intentional removal. Additionally, flag these recoveries in the report as surprising — the user does not plan to manually remove tracks.
+If a track is in history as "added" but missing from the playlist, re-add it. This is treated as an unexpected gap, not an intentional removal. Additionally, flag these recoveries in the report as surprising. The user does not plan to manually remove tracks.
 
 ### 3. Unmatched Retry Limit → 5 Attempts
 
@@ -263,9 +263,9 @@ If a track is deleted from the local XML library, the reconciler must remove it 
 
 Migrate the current `history.json` to the new schema by adding missing fields (`search_attempts`, `match_confidence`, `spotify_id`, `version`) with sensible defaults. Verify the migration is correct before overwriting. Do not start fresh.
 
-### 6. Playlist State → 603 Unique Tracks
+### 6. Playlist State → Duplicate-Free Baseline
 
-The playlist currently has 603 unique tracks (duplicates were already cleaned). The reconciler should maintain this as baseline.
+The playlist had 603 unique tracks as of 2026-03-11 (duplicates were already cleaned). The reconciler should keep the playlist duplicate-free as its baseline; the count is a snapshot, not a constant.
 
 ### 7. Concurrent Run Protection → Lockfile
 
@@ -278,4 +278,4 @@ The tool MUST remove tracks from the playlist when:
 - A track was removed from the offline XML library
 - A track was accidentally/incorrectly added
 
-This makes the tool a true reconciler — the playlist always mirrors the XML library (for matched tracks).
+This makes the tool a true reconciler: the playlist always mirrors the source library (for matched tracks).

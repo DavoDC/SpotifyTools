@@ -20,7 +20,7 @@ All share `src/spotify_tools/spotify_client.py` as the Spotify API client, built
 
 ## Mandatory Rules
 
-Read and follow `GUIDELINES.md` before making any changes. It defines engineering principles, architecture patterns, and prohibited practices.
+Read and follow `docs/References/Engineering-Guidelines.md` before making any changes. It defines engineering principles, architecture patterns, and prohibited practices.
 
 ## Tech Stack
 

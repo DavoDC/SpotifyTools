@@ -3,7 +3,7 @@
 **Last verified:** 2026-03-10
 **Source:** https://developer.spotify.com/documentation/web-api
 
-> **NEVER GUESS DOCS URLs.** Navigate from https://developer.spotify.com/documentation/web-api — fetch that page first to get real link slugs, then fetch the specific page. Guessing slugs wastes time and returns 404s.
+> **NEVER GUESS DOCS URLs.** Navigate from https://developer.spotify.com/documentation/web-api, fetch that page first to get real link slugs, then fetch the specific page. Guessing slugs wastes time and returns 404s.
 
 > **IMPORTANT:** Spotify has deprecated all `/tracks` endpoints and replaced them with `/items`.
 > Always check this file before making any API calls. Never assume old endpoint behaviour.
@@ -24,14 +24,14 @@ Base: `https://developer.spotify.com/documentation/web-api`
 
 ---
 
-## GET /playlists/{id} — Get Playlist
+## GET /playlists/{id}: Get Playlist
 
 Returns the full playlist object.
 
 **Response structure (critical):**
 - Tracks are under `playlist["items"]` key (NOT `playlist["tracks"]`)
 - Each playlist item uses `item["item"]` for the track (NOT `item["track"]`)
-- `"track"` key still exists but is **deprecated** — use `"item"` instead
+- `"track"` key still exists but is **deprecated**; use `"item"` instead
 
 ```json
 {
@@ -64,20 +64,20 @@ Returns the full playlist object.
 
 ---
 
-## POST /playlists/{id}/items — Add Tracks
+## POST /playlists/{id}/items: Add Tracks
 
 **Request body:**
 ```json
 { "uris": ["spotify:track:abc", "spotify:track:def"] }
 ```
-- `uris` — required, array of Spotify URIs (max 100 per request)
-- `position` — optional integer for insertion point
-- Bare list not accepted — MUST be `{"uris": [...]}`
+- `uris`: required, array of Spotify URIs (max 100 per request)
+- `position`: optional integer for insertion point
+- Bare list not accepted; MUST be `{"uris": [...]}`
 - Old `/tracks` endpoint returns 403
 
 ---
 
-## DELETE /playlists/{id}/items — Remove Tracks
+## DELETE /playlists/{id}/items: Remove Tracks
 
 **Request body:**
 ```json
@@ -89,7 +89,7 @@ Returns the full playlist object.
   "snapshot_id": "optional"
 }
 ```
-- Key is `"items"` (NOT `"tracks"` — that was the old format)
+- Key is `"items"` (NOT `"tracks"`; that was the old format)
 - Max 100 items per request
 - `"positions"` field NOT supported on new endpoint (old `/tracks` endpoint had it)
 - `snapshot_id` optional, recommended for concurrent safety
@@ -97,7 +97,7 @@ Returns the full playlist object.
 
 ---
 
-## PUT /playlists/{id}/items — Replace All Tracks
+## PUT /playlists/{id}/items: Replace All Tracks
 
 Replaces the ENTIRE playlist contents with a new set of URIs.
 
@@ -105,7 +105,7 @@ Replaces the ENTIRE playlist contents with a new set of URIs.
 ```json
 { "uris": ["spotify:track:abc", "spotify:track:def"] }
 ```
-- Max 100 URIs — to add more, use PUT first 100 then POST remaining
+- Max 100 URIs; to add more, use PUT first 100 then POST remaining
 - Omit `uris` to clear the playlist entirely
 - `range_start`/`insert_before`/`range_length` for reordering (mutually exclusive with `uris`)
 
@@ -129,10 +129,10 @@ Replaces the ENTIRE playlist contents with a new set of URIs.
 
 4. **First page can be empty**: `sp.playlist()` may return `items=[]` with `total > 0`. Always paginate via `"next"` URL.
 
-5. **Safety check**: If `get_playlist_track_ids()` returns 0 IDs but API reports `total > 0`, something is wrong — ABORT, do not proceed with uploads (main.py enforces this).
+5. **Safety check**: If `get_playlist_track_ids()` returns 0 IDs but API reports `total > 0`, something is wrong: ABORT, do not proceed with uploads (main.py enforces this).
 
 6. **OAuth scopes required**: `playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative`
 
 7. **Rate limiting**: 429 → respect `Retry-After` header. Use 100ms inter-search delay. After bulk upload, wait 15s before next API calls.
 
-8. **spotipy internal methods used**: `sp._post()`, `sp._delete()`, `sp._get_id()` — spotipy's built-in playlist methods use deprecated endpoints.
+8. **spotipy internal methods used**: `sp._post()`, `sp._delete()`, `sp._get_id()`; spotipy's built-in playlist methods use deprecated endpoints.
