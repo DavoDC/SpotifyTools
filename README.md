@@ -148,10 +148,10 @@ SpotifyTools/
 ├── scripts/
 │   └── run.bat / run.sh        # Launchers
 ├── docs/
-│   ├── SpotifyAPI_Reference.md             # Spotify Web API notes
-│   ├── Sync-Tool-Design.md                 # Sync tool design
-│   ├── Third-party-tool-assessment.md      # Historical survey of import tools
-│   ├── Engineering-Guidelines.md           # Engineering rules
+│   ├── SpotifyAPIReference.md             # Spotify Web API notes
+│   ├── SyncToolDesign.md                 # Sync tool design
+│   ├── ThirdPartyToolAssessment.md      # Historical survey of import tools
+│   ├── EngineeringGuidelines.md           # Engineering rules
 │   └── DevContext.md                       # Implementation invariants
 └── data/                       # Gitignored runtime data
     ├── history.json            # Decision history

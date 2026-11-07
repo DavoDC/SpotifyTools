@@ -1,6 +1,6 @@
 # Third-party tool assessment
 
-**Status:** Historical research. This survey of existing Spotify import tools informed the decision to build a custom tool. The design is in `docs/Sync-Tool-Design.md`; the recommendation and verdicts below describe the tools as they were when surveyed, not the current design.
+**Status:** Historical research. This survey of existing Spotify import tools informed the decision to build a custom tool. The design is in `docs/SyncToolDesign.md`; the recommendation and verdicts below describe the tools as they were when surveyed, not the current design.
 
 **Use case:** Build a Spotify playlist from an offline music library exported as CSV.
 CSV format: `Artist` (semicolon-separated, e.g. `Artist A;Artist B`), `Title`, `Album`, `Year`.
@@ -109,7 +109,7 @@ CSV format: `Artist` (semicolon-separated, e.g. `Artist A;Artist B`), `Title`, `
 
 ## Recommendation (historical)
 
-**The survey recommended `smtchahal/spotify-import` as the base, with one targeted modification.** The project was later built as a custom tool instead (see `docs/Sync-Tool-Design.md`).
+**The survey recommended `smtchahal/spotify-import` as the base, with one targeted modification.** The project was later built as a custom tool instead (see `docs/SyncToolDesign.md`).
 
 It was the only tool that:
 - Accepts CSV input directly matching the library export format (`artist, album, title`)

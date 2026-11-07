@@ -80,7 +80,7 @@ tests/
 
 ## Spotify API Facts (HARD-WON)
 
-> Full reference: `docs/SpotifyAPI_Reference.md`. ALWAYS read it first.
+> Full reference: `docs/SpotifyAPIReference.md`. ALWAYS read it first.
 
 - ALL `/tracks` endpoints deprecated -> use `/items`
 - GET: track under `item["item"]` (NOT `item["track"]`)
@@ -93,7 +93,7 @@ tests/
 ## Key Rules
 
 - TDD always - tests first
-- ALWAYS read `docs/SpotifyAPI_Reference.md` before API work
+- ALWAYS read `docs/SpotifyAPIReference.md` before API work
 - Run with `scripts\run.bat` - never tell user to run python directly
 - NEVER make API calls from Claude - let run.bat handle it
 
@@ -129,4 +129,4 @@ Both issues below were fixed; see the "Resolved" section of CLAUDE.md. They are 
 
 ## Research Archive
 
-The initial third-party tool assessment (`docs/Third-party-tool-assessment.md`) evaluated four existing import tools. All were rejected in favour of a custom solution. Kept for reference only; its recommendation is historical and is not the current design.
+The initial third-party tool assessment (`docs/ThirdPartyToolAssessment.md`) evaluated four existing import tools. All were rejected in favour of a custom solution. Kept for reference only; its recommendation is historical and is not the current design.
