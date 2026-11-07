@@ -4,8 +4,7 @@
 
 This repo is the **Spotify gateway module**, a reusable helper like ytkit (YouTube) and ffkit (FFmpeg). All Spotify logic lives here and nowhere else: auth, API client, search, match scoring, playlist and Liked Songs operations, simulator, plus the library-to-playlist sync CLI. Consumers import it; they never call Spotify themselves.
 
-Scope: this repo owns everything that talks to or reasons about Spotify. No UI, no file tagging, no library routing; those belong to the consuming apps. (The wider multi-repo split is tracked separately in elsewhere, not here.)
-
+Scope: this repo owns everything that talks to or reasons about Spotify. No UI, no file tagging, no library routing; those belong to the consuming apps.
 Verdict (design review 2026-11-07, binding): never in this repo: UI, file tagging or routing, external tool integration, consumer-specific defaults (the inbox playlist default is the neutral "Inbox"; consumers pass their own name), consumer names. Done additions: `matcher.primary_artist`, `matcher.title_key`, `matcher.content_key`, `PUBLIC_API`, `open_playlist.build_search_url(artist, title)`. Planned additions, all additive so `API_VERSION` stays 1: `matcher.search_query`, `open_playlist.parse_playlist_id`, one `PUBLIC_API` tuple that README, `__init__` docstring and the list below must match. `build_search_url` stays as a deprecated alias; removing it bumps `API_VERSION` to 2. The sync CLI input becomes a generic track list (`library_path` setting, `audiomirror_path` kept as legacy alias) with the AudioMirror XML reader as one adapter. `tests/unit/test_public_naming.py` guards the naming rule; keep it green.
 
 Rules that follow: a Spotify feature needed by a consumer is added HERE with a stable public name, never duplicated in the consumer. Library-file logic (tags, routing, analysis) never goes into this repo. Public docs (README, code, commits) never name unreleased repos, private paths or other consumers; consumers are described generically ("other projects"). A breaking change to the public surface bumps `API_VERSION`.
@@ -94,7 +93,6 @@ scripts/run.bat
 ## Resolved (kept for history - do not re-open without new evidence)
 
 Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize`, `spotify_client.py` caps 429 retry sleep).
-
 - **429 Rate Limit Hang (2026-03-28):** urllib3 retried 429 with unbounded sleep. Fixed: 429 removed from forcelist, retry sleep capped at 30s (`MAX_RETRY_AFTER_S` in `spotify_client.py`), `SEARCH_DELAY_S` raised to 0.5.
 - **Unicode Matching:** `normalise()` didn't strip diacritics, so accented names could mismatch. Fixed: `matcher.py`'s `normalise()` runs `unicodedata.normalize('NFKD', s)` then strips combining characters.
 
