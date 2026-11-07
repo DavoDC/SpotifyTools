@@ -151,9 +151,8 @@ SpotifyTools/
 │   ├── SpotifyAPI_Reference.md             # Spotify Web API notes
 │   ├── Sync-Tool-Design.md                 # Sync tool design
 │   ├── Third-party-tool-assessment.md      # Historical survey of import tools
-│   └── References/
-│       ├── Engineering-Guidelines.md       # Engineering rules
-│       └── DevContext.md                   # Implementation invariants
+│   ├── Engineering-Guidelines.md           # Engineering rules
+│   └── DevContext.md                       # Implementation invariants
 └── data/                       # Gitignored runtime data
     ├── history.json            # Decision history
     ├── logs/                   # Run logs

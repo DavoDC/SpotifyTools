@@ -10,3 +10,7 @@ data/run.lock
 /data/history.json*
 /data/logs/
 /data/reports/
+
+# pytest cache and any other runtime output under data/
+.pytest_cache/
+data/
