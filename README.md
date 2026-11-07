@@ -13,7 +13,7 @@ It also ships one ready-made tool: a CLI that syncs an offline music library (an
 ## Design boundary
 
 - **Owns:** everything that talks to or reasons about Spotify: auth, API client, search, name normalisation and match scoring, playlist and Liked Songs operations, the offline simulator, and the sync CLI.
-- **Never contains:** a UI, file tagging or routing, external tool integration, defaults specific to one consumer, or the name of any consumer.
+- **Never contains:** a UI, file tagging or routing, integrations with other apps, defaults specific to one consumer, or the name of any consumer.
 - **Consumers** import only the stable public surface below and never duplicate Spotify text logic (artist/title cleanup, playlist-id parsing, search queries); if a consumer needs one, it is added here.
 - **Input** to the sync CLI is a track list (artist, title, album). The AudioMirror XML reader is one input adapter, not the core.
 - **Versioning:** adding public names keeps `API_VERSION`; removing or changing one bumps it.

@@ -1,7 +1,7 @@
 """Public-naming guard: the repo must not name a specific consumer.
 
 Scans every git-tracked text file under src/, tests/, docs/ (including
-docs/References/Engineering-Guidelines.md), README.md and CLAUDE.md. Fails on consumer-app names, on the old name, on absolute user paths, and on the external tool name (no exceptions).
+docs/References/Engineering-Guidelines.md), README.md and CLAUDE.md. Fails on consumer-app names, on the old name, on absolute user paths, and on one more banned product name (no exceptions).
 """
 
 import os
@@ -14,7 +14,7 @@ SCAN_PREFIXES = ("src/", "tests/", "docs/")
 SCAN_FILES = ("README.md", "CLAUDE.md")
 
 FORBIDDEN_RE = old_pattern
-external tool_RE = re.compile("old-name", re.IGNORECASE)
+BANNED_TERM_RE = re.compile("old-name", re.IGNORECASE)
 ABSOLUTE_PATH_RE = re.compile(r"C:\\Users|/c/Users", re.IGNORECASE)
 
 
@@ -44,7 +44,7 @@ def _violations():
             where = f"{rel}:{number}: {line.strip()}"
             if FORBIDDEN_RE.search(line):
                 found.append(where)
-            if external tool_RE.search(line):
+            if BANNED_TERM_RE.search(line):
                 found.append(where)
             if ABSOLUTE_PATH_RE.search(line):
                 found.append(where)
