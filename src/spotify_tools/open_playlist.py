@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open Spotify playlist tracks for a local consumer.
+"""Spotify playlist helpers: ID parsing, search links, and track listing.
 
 Accepts a playlist ID or a full Spotify URL:
   https://open.spotify.com/playlist/EXAMPLEPLAYLISTID0000?si=...
@@ -10,8 +10,6 @@ import logging
 import os
 import re
 import sys
-import webbrowser
-from urllib.parse import quote_plus
 
 # This file lives at <repo>/src/spotify_tools/open_playlist.py, so one
 # dirname() from here always lands at <repo>/src - needed on sys.path so
@@ -24,7 +22,6 @@ from spotify_tools.config import load_config, CONFIG_PATH
 from spotify_tools.spotify_client import RealSpotifyClient
 from spotify_tools.paths import REPO_ROOT
 
-SEARCH_BASE = "a local search URL"
 CACHE_DIR = os.path.join(REPO_ROOT, "data", "playlist_cache")
 LOG_FILE = os.path.join(REPO_ROOT, "data", "logs", "open_playlist.log")
 
@@ -77,75 +74,16 @@ def _save_cache(playlist_id: str, tracks: list):
     logger.info(f"Cached {len(tracks)} tracks to {path}")
 
 
-# The \b is load-bearing: without it "ft"/"feat" matched inside ordinary words,
-# so "Left Behind" was truncated to "Le" and "Defeat Me" to "De", sending the
-# external link off to search for nonsense. Only strip a feat/ft credit that
-# starts its own word. Verified against the live external link 2026-09-05.
-_FEAT_RE = re.compile(r'\s*[\(\[]?\b(?:feat|ft)\b\.?\s+.*', re.IGNORECASE)
-
-
 def build_search_url(artist: str, title: str) -> str:
     """Spotify search link for "artist title". safe="" escapes a slash or ampersand."""
     from urllib.parse import quote
     return "https://open.spotify.com/search/" + quote(f"{artist} {title}", safe="")
 
 
-def _clean_for_search(text: str) -> str:
-    """Strip non-word characters so the external app receives plain words only."""
-    stripped = re.sub(r'[^\w\s]', ' ', text)
-    return re.sub(r'\s+', ' ', stripped).strip()
-
-
-def _build_search_url(artist: str, title: str) -> str:
-    """Pure URL-building half of _open_search - reusable
-    so link-building logic isn't duplicated cross-repo."""
-    primary = artist.split(' & ')[0].split(';')[0].strip()
-    core_title = _FEAT_RE.sub('', title).strip()
-    query = _clean_for_search(f"{primary} {core_title}")
-    return f"{SEARCH_BASE}?term={quote_plus(query)}"
-
-
-build_search_url = _build_search_url  # public alias; _build_search_url kept for compatibility
-
-
-def _open_search(artist: str, title: str):
-    webbrowser.open(_build_search_url(artist, title))
-
-
-def _open_interactively(tracks: list[tuple[str, str]]) -> None:
-    tracks = sorted(tracks, key=lambda t: (t[0].split(' & ')[0].strip().lower(), t[1].lower()))
-    n = len(tracks)
-    if n == 0:
-        print("No tracks to open.")
-        return
-
-    try:
-        input(f"\nReady to open {n} tracks. Press Enter to start (or Ctrl+C to cancel)...")
-    except (KeyboardInterrupt, EOFError):
-        print("\nCancelled.")
-        return
-
-    for i, (artist, title) in enumerate(tracks, 1):
-        label = f"{artist} - {title}"
-        logger.debug(f"[{i}/{n}] Opening: {label}")
-        print(f"[{i}/{n}] {label}")
-        _open_search(artist, title)
-
-        if i < n:
-            next_artist, next_title = tracks[i]
-            prompt = f"Next: {next_artist} - {next_title} | Press Enter to open (or 'q' to quit): "
-            try:
-                resp = input(prompt).strip().lower()
-            except (KeyboardInterrupt, EOFError):
-                print(f"\nStopped. Opened {i}/{n} tracks.")
-                return
-            if resp == "q":
-                logger.info(f"User quit after {i}/{n} tracks.")
-                print(f"Stopped. Opened {i}/{n} tracks.")
-                return
-
-    print(f"\nAll {n} tracks opened.")
-    logger.debug(f"Done. Opened {n} tracks.")
+def format_track_lines(tracks: list[tuple[str, str]]) -> list[str]:
+    """Return "artist - title" lines sorted by primary artist, then title."""
+    ordered = sorted(tracks, key=lambda t: (t[0].split(' & ')[0].strip().lower(), t[1].lower()))
+    return [f"{artist} - {title}" for artist, title in ordered]
 
 
 def main():
@@ -174,9 +112,9 @@ def main():
             sys.exit(1)
         _save_cache(playlist_id, tracks)
 
-    logger.info(f"Opening {len(tracks)} tracks in an app...")
-    _open_interactively(tracks)
-    logger.debug("Done. Check your browser.")
+    for line in format_track_lines(tracks):
+        print(line)
+    logger.info(f"Printed {len(tracks)} tracks.")
 
 
 if __name__ == "__main__":

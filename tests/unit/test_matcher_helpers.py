@@ -98,7 +98,7 @@ def test_new_helpers_live_in_matcher():
 
 def test_public_api_lists_new_helpers_and_existing_names():
     for name in NEW_HELPERS + ("clean_title", "clean_artist", "normalise", "build_client",
-                               "API_VERSION", "build_search_url"):
+                               "API_VERSION"):
         assert name in PUBLIC_API, name
 
 

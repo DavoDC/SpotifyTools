@@ -41,7 +41,6 @@ Stable public surface (import only these, never underscore names):
 | `spotify_tools.acquire.move_liked_to_playlist` | Move Liked Songs into a playlist |
 | `spotify_tools.open_playlist.extract_playlist_id` | Playlist URL helper |
 | `spotify_tools.open_playlist.build_search_url` | Spotify search link for "artist title" |
-| `spotify_tools.open_playlist.build_search_url` | Deprecated alias, kept until API_VERSION 2 removes it |
 | `spotify_tools.config.CONFIG_PATH / load_config` | Config location and loader |
 
 Clone it next to your project and put `src/` on `sys.path` (or set `SPOTIFY_TOOLS_ROOT`); it is not published to PyPI.
@@ -136,7 +135,7 @@ SpotifyTools/
 │       ├── spotify_client.py   # Real Spotify client
 │       ├── spotify_simulator.py    # Mock client for testing
 │       ├── acquire.py          # Liked Songs -> playlist orchestration (library use)
-│       ├── open_playlist.py    # Open playlist tracks in local external app
+│       ├── open_playlist.py    # Playlist helpers (ID parsing, search links, track listing)
 │       ├── diagnose.py         # Auth diagnostic (python -m spotify_tools.diagnose)
 │       ├── history_store.py    # Safe JSON persistence
 │       ├── reconciler.py       # Deterministic sync algorithm

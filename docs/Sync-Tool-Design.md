@@ -29,7 +29,7 @@ src/spotify_tools/
   report_generator.py  - Markdown reports
   lockfile.py          - Concurrent run protection
   acquire.py           - Liked Songs -> playlist orchestration (library use)
-  open_playlist.py     - Open playlist tracks in a local external app
+  open_playlist.py     - Playlist helpers (ID parsing, search links, track listing)
   diagnose.py          - Auth diagnostic
 ```
 

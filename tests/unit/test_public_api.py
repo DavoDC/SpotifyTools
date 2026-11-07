@@ -5,21 +5,13 @@ from unittest.mock import patch
 from spotify_tools import API_VERSION, build_client
 from spotify_tools.config import CONFIG_PATH, load_config
 from spotify_tools.matcher import clean_artist, clean_title, normalise
-from spotify_tools.open_playlist import (
-    _build_search_url,
-    build_search_url,
-    extract_playlist_id,
-)
+from spotify_tools.open_playlist import extract_playlist_id
 from spotify_tools.acquire import move_liked_to_playlist
 from spotify_tools.spotify_client import RealSpotifyClient
 
 
 def test_api_version_is_int():
     assert isinstance(API_VERSION, int) and API_VERSION >= 1
-
-
-def test_alias_is_same_object():
-    assert build_search_url is _build_search_url
 
 
 def test_public_names_importable():

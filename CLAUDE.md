@@ -5,13 +5,13 @@
 This repo is the **Spotify gateway module**, a reusable helper like ytkit (YouTube) and ffkit (FFmpeg). All Spotify logic lives here and nowhere else: auth, API client, search, match scoring, playlist and Liked Songs operations, simulator, plus the library-to-playlist sync CLI. Consumers import it; they never call Spotify themselves.
 
 Scope: this repo owns everything that talks to or reasons about Spotify. No UI, no file tagging, no library routing; those belong to the consuming apps.
-Verdict (design review 2026-11-07, binding): never in this repo: UI, file tagging or routing, external tool integration, consumer-specific defaults (the inbox playlist default is the neutral "Inbox"; consumers pass their own name), consumer names. Done additions: `matcher.primary_artist`, `matcher.title_key`, `matcher.content_key`, `PUBLIC_API`, `open_playlist.build_search_url(artist, title)`. Planned additions, all additive so `API_VERSION` stays 1: `matcher.search_query`, `open_playlist.parse_playlist_id`, one `PUBLIC_API` tuple that README, `__init__` docstring and the list below must match. `build_search_url` stays as a deprecated alias; removing it bumps `API_VERSION` to 2. The sync CLI input becomes a generic track list (`library_path` setting, `audiomirror_path` kept as legacy alias) with the AudioMirror XML reader as one adapter. `tests/unit/test_public_naming.py` guards the naming rule; keep it green.
+Verdict (design review 2026-11-07, binding): never in this repo: UI, file tagging or routing, external tool integration, consumer-specific defaults (the inbox playlist default is the neutral "Inbox"; consumers pass their own name), consumer names. Done additions: `matcher.primary_artist`, `matcher.title_key`, `matcher.content_key`, `PUBLIC_API`, `open_playlist.build_search_url(artist, title)`. Planned additions, all additive so `API_VERSION` stays 1: `matcher.search_query`, `open_playlist.parse_playlist_id`, one `PUBLIC_API` tuple that README, `__init__` docstring and the list below must match. The former external tool alias is removed; its removal is a breaking change, so `API_VERSION` bump to 2 is pending David's decision. The sync CLI input becomes a generic track list (`library_path` setting, `audiomirror_path` kept as legacy alias) with the AudioMirror XML reader as one adapter. `tests/unit/test_public_naming.py` guards the naming rule; keep it green.
 
 Rules that follow: a Spotify feature needed by a consumer is added HERE with a stable public name, never duplicated in the consumer. Library-file logic (tags, routing, analysis) never goes into this repo. Public docs (README, code, commits) never name unreleased repos, private paths or other consumers; consumers are described generically ("other projects"). A breaking change to the public surface bumps `API_VERSION`.
 
 **Tools in this repo:**
 - `src/spotify_tools/main.py` - batch sync tool. Reads AudioMirror XML library, syncs to a Spotify playlist. Run via `scripts/run.bat`.
-- `src/spotify_tools/open_playlist.py` - interactive browser. Opens Spotify playlist tracks in browser one by one for review/lookup.
+- `src/spotify_tools/open_playlist.py` - playlist helpers. Prints a Spotify playlist's tracks as "artist - title" for review/lookup.
 - `src/spotify_tools/acquire.py` - shared orchestration (Liked Songs -> inbox playlist). No CLI entrypoint of its own; imported by consumers as a sibling-directory Python import (public surface below).
 - `src/spotify_tools/diagnose.py` - auth diagnostic, run via `python -m spotify_tools.diagnose` (also invoked silently on every `scripts/run.sh` launch).
 
@@ -34,7 +34,7 @@ src/spotify_tools/
   __init__.py
   paths.py               - Single source of truth for REPO_ROOT (env var SPOTIFY_TOOLS_ROOT, else derived)
   main.py                - CLI entrypoint, stage orchestration (sync tool)
-  open_playlist.py       - Interactive playlist browser
+  open_playlist.py       - Playlist helpers (ID parsing, search links, track listing)
   acquire.py             - Liked Songs -> inbox playlist orchestration (used by consumers)
   diagnose.py            - Auth diagnostic (python -m spotify_tools.diagnose)
   config.py              - Config loading/validation
@@ -86,8 +86,7 @@ scripts/run.bat
 ## open_playlist.py Patterns
 
 - `get_playlist_tracks` joins all Spotify artists with ` & `. For search URL building: split on ` & `, take `[0]` (primary). For display: use full joined string.
-- Spotify official titles include `(feat. X)` in the title string itself - must be stripped with `_FEAT_RE` before URL encoding, separately from artist extraction.
-- Sort tracks by primary artist before sequential opening (`_open_interactively` does this) - groups same-artist tracks for efficient lookup workflow.
+- Sort tracks by primary artist before printing (`format_track_lines` does this) - groups same-artist tracks for lookup.
 - `logger.info` + `print` in same code block = double output on terminal (StreamHandler at INFO level). Use `logger.debug` for file-only, `print` for terminal-only.
 
 ## Resolved (kept for history - do not re-open without new evidence)
@@ -98,4 +97,4 @@ Both fixed; code confirmed 2026-09-04 (`matcher.py` calls `unicodedata.normalize
 
 ## Claude instructions
 
-Stable public surface for consumers: `spotify_tools.API_VERSION` (int, bump on breaking change), `spotify_tools.build_client(config=None)` (wraps `RealSpotifyClient`, `None` loads the default config), and `open_playlist.build_search_url` (public alias of `_build_search_url`; the underscore name still works). Plus the already-public `config.CONFIG_PATH`, `config.load_config`, `matcher.clean_artist/clean_title/normalise/primary_artist/title_key/content_key`, `open_playlist.extract_playlist_id`, `open_playlist.build_search_url(artist, title)`, `acquire.move_liked_to_playlist`, `spotify_simulator.SimulatedSpotifyClient`. Consumers must import only these, never underscore names.
+Stable public surface for consumers: `spotify_tools.API_VERSION` (int, bump on breaking change), `spotify_tools.build_client(config=None)` (wraps `RealSpotifyClient`, `None` loads the default config). Plus the already-public `config.CONFIG_PATH`, `config.load_config`, `matcher.clean_artist/clean_title/normalise/primary_artist/title_key/content_key`, `open_playlist.extract_playlist_id`, `open_playlist.build_search_url(artist, title)`, `acquire.move_liked_to_playlist`, `spotify_simulator.SimulatedSpotifyClient`. Consumers must import only these, never underscore names.
