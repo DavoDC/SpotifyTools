@@ -246,7 +246,7 @@ The architecture must enforce these principles.
 
 ## Design Decisions (User-Confirmed 2026-03-11)
 
-These decisions were made during design review and are final.
+These decisions were are final.
 
 ### 1. LOW Confidence Matches → Skip
 
