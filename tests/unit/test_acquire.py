@@ -1,4 +1,4 @@
-"""Tests for src/acquire.py (Liked Songs: Liked Songs -> inbox playlist)."""
+"""Tests for src/acquire.py (Liked Songs -> inbox playlist)."""
 
 from spotify_tools.acquire import move_liked_to_playlist, INBOX_PLAYLIST_NAME
 from spotify_tools.spotify_simulator import SimulatedSpotifyClient
